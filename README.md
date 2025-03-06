@@ -16,7 +16,7 @@ Below, I will provide rough instructions for preparing the data on macOS.
     % ogr2ogr -f GeoJSON -t_srs EPSG:4326 pca_vuln_index.geojson pca_vuln_index.shp
     ```
 
-3. Rename the vulnerability column `"std_pc2"` to `"Heat_Vuln"` by running this script:
+3. Rename the vulnerability column `"std_pc2"` to `"Heat_Vuln"` by running this Python script:
 
     ```python
     import json
