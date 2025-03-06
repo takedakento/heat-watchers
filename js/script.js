@@ -45,7 +45,7 @@ d3.json("data/pca_vuln_index.geojson").then(data => {
 
     // Get min and max Heat_Vuln values
     const heatVulnExtent = d3.extent(data.features, d => d.properties.Heat_Vuln);
-    
+
     // Define a color scale (low = light red, high = dark red)
     const colorScale = d3.scaleSequential(d3.interpolateReds)
         .domain(heatVulnExtent);
@@ -121,4 +121,47 @@ d3.json("data/pca_vuln_index.geojson").then(data => {
         .call(legendAxis);
 }).catch(error => {
     console.error("Error loading the GeoJSON file:", error);
+});
+
+// Load the heat exposure GeoJSON data
+d3.json("data/exposure_degree20.geojson").then(exposureData => {
+    console.log("Heat Exposure GeoJSON loaded", exposureData);
+
+    // Define scale for circle size based on heat exposure
+    const exposureExtent = d3.extent(exposureData.features, d => d.properties.SUM_temper);
+    const radiusScale = d3.scaleLinear()
+        .domain(exposureExtent)
+        .range([2, 12]); // Adjust the circle size range as needed
+
+    // Overlay heat exposure data
+    g.selectAll("circle.exposure")
+        .data(exposureData.features)
+        .enter()
+        .append("circle")
+        .attr("class", "exposure")
+        .attr("cx", d => path.centroid(d)[0])
+        .attr("cy", d => path.centroid(d)[1])
+        .attr("r", d => radiusScale(d.properties.SUM_temper))
+        .attr("fill", "orange")
+        .attr("opacity", 0.7)
+        .attr("stroke", "#555")
+        .attr("stroke-width", 0.5)
+        .on("mouseover", (event, d) => {
+            tooltip.style("display", "block")
+                .html(`<strong>DAUID:</strong> ${d.properties.DAUID}<br>
+                       <strong>Heat Exposure (°C Days):</strong> ${d.properties.SUM_temper.toFixed(2)}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+            d3.select(event.currentTarget)
+                .attr("stroke", "#000")
+                .attr("stroke-width", 1.5);
+        })
+        .on("mouseout", (event) => {
+            tooltip.style("display", "none");
+            d3.select(event.currentTarget)
+                .attr("stroke", "#555")
+                .attr("stroke-width", 0.5);
+        });
+}).catch(error => {
+    console.error("Error loading heat exposure data:", error);
 });
