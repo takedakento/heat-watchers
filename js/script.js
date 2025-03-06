@@ -21,13 +21,23 @@ const path = d3.geoPath().projection(projection);
 
 // Define zoom behavior
 const zoom = d3.zoom()
-    .scaleExtent([1, 8])  // Zoom limits (1x to 8x)
+    .scaleExtent([1, 8])  // Allows zooming between 1x and 8x
     .on("zoom", (event) => {
-        g.attr("transform", event.transform);  // Apply zoom transform
+        g.attr("transform", event.transform);  // Moves the map when zooming
     });
 
 // Apply zoom behavior to the SVG
 svg.call(zoom);
+
+// Function to reset zoom
+function resetZoom() {
+    svg.transition()
+        .duration(750) // Smooth transition
+        .call(zoom.transform, d3.zoomIdentity); // Reset to original scale and position
+}
+
+// Attach event listener to the Reset Zoom button
+d3.select("#resetZoom").on("click", resetZoom);
 
 // Load the GeoJSON data
 d3.json("data/pca_vuln_index.geojson").then(data => {
