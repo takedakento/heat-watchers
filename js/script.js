@@ -20,13 +20,20 @@ const path = d3.geoPath().projection(projection);
 d3.json("data/pca_vuln_index.geojson").then(data => {
     console.log("GeoJSON Loaded:", data); // Debugging: Check if the file loads correctly
 
-    // Draw map boundaries
+    // Get min and max Heat_Vuln values
+    const heatVulnExtent = d3.extent(data.features, d => d.properties.Heat_Vuln);
+    
+    // Define a color scale (blue = low vulnerability, red = high vulnerability)
+    const colorScale = d3.scaleSequential(d3.interpolateReds)
+        .domain(heatVulnExtent); // Scale based on min/max values
+
+    // Draw map boundaries with color-coding
     svg.selectAll("path")
         .data(data.features)
         .enter()
         .append("path")
         .attr("d", path)
-        .attr("fill", "#ccc") // Default color for all areas
+        .attr("fill", d => colorScale(d.properties.Heat_Vuln)) // Apply color based on Heat_Vuln
         .attr("stroke", "#333") // Outline color
         .attr("stroke-width", 0.5);
 }).catch(error => {
