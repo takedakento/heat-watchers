@@ -2,10 +2,13 @@
 const width = 800;
 const height = 600;
 
-// Create an SVG element
+// Create an SVG element with a group (`g`) for zooming
 const svg = d3.select("#map")
     .attr("width", width)
     .attr("height", height);
+
+// Create a group inside the SVG for the map
+const g = svg.append("g");
 
 // Define a projection for Toronto (Mercator projection)
 const projection = d3.geoMercator()
@@ -16,6 +19,16 @@ const projection = d3.geoMercator()
 // Create a path generator
 const path = d3.geoPath().projection(projection);
 
+// Define zoom behavior
+const zoom = d3.zoom()
+    .scaleExtent([1, 8])  // Zoom limits (1x to 8x)
+    .on("zoom", (event) => {
+        g.attr("transform", event.transform);  // Apply zoom transform
+    });
+
+// Apply zoom behavior to the SVG
+svg.call(zoom);
+
 // Load the GeoJSON data
 d3.json("data/pca_vuln_index.geojson").then(data => {
     console.log("GeoJSON Loaded:", data);
@@ -23,7 +36,7 @@ d3.json("data/pca_vuln_index.geojson").then(data => {
     // Get min and max Heat_Vuln values
     const heatVulnExtent = d3.extent(data.features, d => d.properties.Heat_Vuln);
     
-    // Define a color scale (blue = low vulnerability, red = high vulnerability)
+    // Define a color scale (low = light red, high = dark red)
     const colorScale = d3.scaleSequential(d3.interpolateReds)
         .domain(heatVulnExtent);
 
@@ -37,8 +50,8 @@ d3.json("data/pca_vuln_index.geojson").then(data => {
         .style("border-radius", "5px")
         .style("display", "none");
 
-    // Draw map boundaries with color-coding and tooltips
-    svg.selectAll("path")
+    // Draw map boundaries inside the `g` group (so zoom affects it)
+    g.selectAll("path")
         .data(data.features)
         .enter()
         .append("path")
