@@ -1,3 +1,34 @@
+### Project structure
+
+```
+heat-wachers
+├── README.md
+├── data
+│   ├── exposure_degree20.geojson   # Heat exposure data
+│   └── pca_vuln_index.geojson      # Heat vulnerability data
+├── index.html
+└── js
+    └── script.js
+```
+
+### How to run
+
+#### With Python
+
+```
+python3 -m http.server 8000
+```
+
+Then, open `http://localhost:8000` in your browser.
+
+#### With Node.js
+
+```
+npx http-server
+```
+
+### Data preparation steps for members
+
 To visualize heat vulnerability, we start with `pca_vuln_index.shp` (Heat Vulnerability Index, PCA Method). This file contains dissemination areas (DAs) in Toronto, each with a heat vulnerability score. The score is derived from sensitivity, exposure, and adaptive capacity factors using PCA. Higher scores mean more vulnerable areas (e.g., low-income, less tree cover, high heat exposure).
 
 Below, I will provide rough instructions for preparing the data on macOS.
