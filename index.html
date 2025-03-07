@@ -5,18 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toronto Heat Vulnerability Map</title>
     <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Load D3.js -->
+    <style>
+        /* General page layout */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+            margin: 0;
+        }
+
+        /* Section spacing */
+        .section {
+            margin-bottom: 50px; /* Space between map and chart */
+        }
+
+        /* Centering the map and chart */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        /* Ensuring the map is properly centered */
+        #map-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+
+        /* SVG styles for better visibility */
+        svg {
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+
+        /* Responsive design */
+        @media (max-width: 900px) {
+            svg {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
 </head>
 <body>
+
+<!-- MAP SECTION (Row 1) -->
+<section id="map-section" class="section">
     <h1>Toronto Heat Vulnerability Map</h1>
-    
+
     <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
         <option value="vulnerability">Heat Vulnerability</option>
         <option value="exposure">Heat Exposure</option>
         <option value="contour">Heat Contour Map</option>
     </select>
-    
-    <svg id="map"></svg> <!-- SVG container for the map -->
-    <script src="js/script.js"></script> <!-- D3.js script -->
+
+    <div id="map-container">
+        <svg id="map" width="800" height="600"></svg>
+    </div>
+</section>
+
+<!-- CHART SECTION (Row 2) -->
+<section id="chart-section" class="section">
+    <h2>Yearly Temperature Trends in Toronto</h2>
+    <div class="container">
+        <svg id="lineChart" width="800" height="400"></svg>
+    </div>
+</section>
+
+<script src="js/script.js" type="module"></script>  <!-- Map Script -->
+<script src="js/chartScript.js" type="module"></script>  <!-- Chart Script -->
+
 </body>
 </html>

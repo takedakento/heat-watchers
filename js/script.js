@@ -132,7 +132,7 @@ function drawMap(dataset, valueKey, colorScale, label) {
 function drawContourMap(dataset){
 
     // Remove previous map elements but KEEP the base map outline
-    g.selectAll("*").remove();
+    g.selectAll(".contour-area, .contour").remove();
     svg.selectAll(".legend").remove();
 
     // Draw the blank base map (Toronto boundaries)
