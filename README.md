@@ -16,7 +16,7 @@ heat-wachers
 #### With Python
 
 ```
-python3 -m http.server 8000
+% python3 -m http.server 8000
 ```
 
 Then, open `http://localhost:8000` in your browser.
@@ -24,7 +24,7 @@ Then, open `http://localhost:8000` in your browser.
 #### With Node.js
 
 ```
-npx http-server
+% npx http-server
 ```
 
 ### Data preparation steps for members
