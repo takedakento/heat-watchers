@@ -128,6 +128,106 @@ function drawMap(dataset, valueKey, colorScale, label) {
     // Draw the legend for the current dataset
     drawLegend(d3.extent(dataset.features, d => d.properties[valueKey]), colorScale);
 }
+// Function to draw contour map based on provided dataset
+function drawContourMap(dataset){
+
+    // Remove previous map elements but KEEP the base map outline
+    g.selectAll("*").remove();
+    svg.selectAll(".legend").remove();
+
+    // Draw the blank base map (Toronto boundaries)
+    g.selectAll("path")
+        .data(dataset.features)
+        .enter().append("path")
+        .attr("d", path)
+        .attr("fill", "none")
+        .attr("stroke", "#aaa")
+        .attr("stroke-width", 0.5);
+
+    // Extract centroids and temperature values for contours
+    const points = dataset.features.map(d => {
+        const centroid = d3.geoCentroid(d); // Compute the centroid of the polygon
+        return {
+            lon: centroid[0],
+            lat: centroid[1],
+            value: d.properties.SUM_temper
+        };
+    });
+
+    // Convert geographic coordinates into projected coordinates
+    const projectedPoints = points.map(d => ({
+        x: projection([d.lon, d.lat])[0], // Projected x
+        y: projection([d.lon, d.lat])[1], // Projected y
+        value: d.value
+    }));
+
+    // Define the grid size for interpolation
+    const gridSize = 20;
+    const gridWidth = Math.ceil(width / gridSize);
+    const gridHeight = Math.ceil(height / gridSize);
+    const grid = new Array(gridWidth * gridHeight).fill(0);
+
+    // Fill the grid with values using nearest neighbor interpolation
+    projectedPoints.forEach(({ x, y, value }) => {
+        const i = Math.floor(x / gridSize);
+        const j = Math.floor(y / gridSize);
+        if (i >= 0 && i < gridWidth && j >= 0 && j < gridHeight) {
+            grid[j * gridWidth + i] = value;
+        }
+    });
+
+    // Generate contour lines with dynamic thresholding
+    const contours = d3.contours()
+        .size([gridWidth, gridHeight])
+        (grid);
+
+    // Define a red color scale for contour lines
+    const contourColor = d3.scaleSequential(d3.interpolateReds)
+        .domain(d3.extent(points, d => d.value));
+
+    // Draw contour **areas** with transparency
+    g.selectAll(".contour-area")
+        .data(contours)
+        .enter().append("path")
+        .attr("class", "contour-area")
+        .attr("d", d3.geoPath(d3.geoIdentity().scale(gridSize)))
+        .attr("fill", d => contourColor(d.value)) // Apply color based on temperature
+        .attr("opacity", 0.1); // Add transparency to avoid overpowering the map
+
+    // Draw contour **lines** on top
+    g.selectAll(".contour")
+        .data(contours)
+        .enter().append("path")
+        .attr("class", "contour")
+        .attr("d", d3.geoPath(d3.geoIdentity().scale(gridSize)))
+        .attr("fill", "none") // Ensure no additional fill for lines
+        .attr("stroke", d => contourColor(d.value)) // Use the same color as the fill
+        .attr("stroke-width", 1.5);
+
+    // **Add temperature tooltips on hover**
+    g.selectAll(".contour")
+        .on("mouseover", function (event, d) {
+            tooltip.style("display", "block")
+                .html(`<strong>Temperature:</strong> ${d.value.toFixed(1)} °C`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+
+            // Highlight the hovered contour line
+            d3.select(this).attr("stroke-width", 3);
+        })
+        .on("mousemove", function (event) {
+            tooltip.style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px");
+        })
+        .on("mouseout", function () {
+            tooltip.style("display", "none");
+
+            // Reset contour line thickness
+            d3.select(this).attr("stroke-width", 1.5);
+        });
+
+}
+
 
 // Load the GeoJSON datasets concurrently
 Promise.all([
@@ -149,8 +249,10 @@ Promise.all([
         const selection = this.value;
         if (selection === "vulnerability") {
             drawMap(vulnData, "Heat_Vuln", vulnColor, "Heat Vulnerability");
-        } else {
+        } else if (selection === "exposure") {
             drawMap(exposureData, "SUM_temper", exposureColor, "Heat Exposure (°C Days)");
+        } else if (selection ==="contour") {
+            drawContourMap(exposureData);
         }
     });
 }).catch(error => {
