@@ -11,6 +11,16 @@ const svg = d3.select("#lineChart")
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
+// Append a tooltip div (hidden by default)
+const tooltip = d3.select("body")  // Append to body for absolute positioning
+    .append("div")
+    .style("position", "absolute")
+    .style("background", "lightgray")
+    .style("padding", "5px")
+    .style("border-radius", "5px")
+    .style("display", "none")  // Initially hidden
+    .style("pointer-events", "none");
+
 // Load and process the temperature data
 d3.csv("data/tor_urban_Weatherfile_Historical.csv").then(data => {
     // Parse data: Convert YEAR and TEMP_K (Kelvin) to Celsius
@@ -75,5 +85,26 @@ d3.csv("data/tor_urban_Weatherfile_Historical.csv").then(data => {
         .attr("stroke", "steelblue")
         .attr("stroke-width", 2)
         .attr("d", line);
+
+
+    svg.selectAll(".dot")
+    .data(formattedData)
+    .enter().append("circle")
+    .attr("class", "dot")
+    .attr("cx", d => xScale(d.year))
+    .attr("cy", d => yScale(d.temp))
+    .attr("r", 4)
+    .attr("fill", "steelblue")
+    .on("mouseover", (event, d) => {
+        tooltip.style("display", "block")  // Show tooltip
+            .html(`Year: ${d.year} <br>Temp: ${d.temp.toFixed(2)}°C`);
+    })
+    .on("mousemove", event => {
+        tooltip.style("top", `${event.pageY - 30}px`)
+            .style("left", `${event.pageX + 10}px`);
+    })
+    .on("mouseout", () => {
+        tooltip.style("display", "none");  // Hide tooltip
+    });
 
 });
