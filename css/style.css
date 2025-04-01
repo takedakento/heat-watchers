@@ -1,0 +1,97 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    margin: 0;
+    background-color: #f6f8fb; /* soft background */
+}
+
+/* Page sections have a max width and centered layout */
+.section {
+    background: white;
+    border-radius: 12px;
+    padding: 40px 30px;
+    margin: 40px auto;
+    max-width: 1000px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Typography cleanup */
+h1 {
+    font-size: 2.4em;
+    text-align: center;
+    color: #002244;
+}
+
+h2 {
+    font-size: 1.6em;
+    text-align: center;
+    color: #003366;
+}
+
+.section p {
+    text-align: left;
+    line-height: 1.6;
+    font-size: 16px;
+    margin-top: 1em;
+}
+
+/* Buttons and dropdowns */
+button, select {
+    margin: 10px 10px 20px 0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    transition: all 0.2s ease;
+}
+
+button:hover, select:hover {
+    transform: scale(1.03);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+
+/* Map and charts centered */
+#map-container, #chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 20px;
+}
+
+/* SVG styling */
+svg {
+    background-color: white;
+    border: 1px solid #ccc;
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+    svg {
+        width: 100%;
+        height: auto;
+    }
+}
+
+#navbar {
+    position: sticky;
+    top: 0;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    padding: 10px 0;
+}
+
+#navbar a {
+    text-decoration: none;
+    color: #003366;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+#navbar a:hover {
+    color: #007acc;
+    text-decoration: underline;
+}

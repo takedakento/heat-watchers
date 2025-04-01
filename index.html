@@ -6,37 +6,109 @@
     <title>Toronto Heat Vulnerability Map</title>
     <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Load D3.js -->
     <style>
-        /* General page layout */
         body {
             font-family: Arial, sans-serif;
-            padding: 20px;
-            text-align: center;
+            padding: 0;
             margin: 0;
+            background-color: #f6f8fb; /* light background */
+            color: #004488; /* content text color */
         }
 
-        /* Section spacing */
+        /* Sticky navbar */
+        #navbar {
+            position: sticky;
+            top: 0;
+            background: white;
+            border-bottom: 1px solid #ccc;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 12px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        #navbar a {
+            font-family: Arial, sans-serif;
+            text-decoration: none;
+            color: #003366;
+            font-weight: bold;
+            font-size: 16px;
+            transition: color 0.2s ease;
+        }
+
+        #navbar a:hover {
+            color: #007acc;
+            text-decoration: underline;
+        }
+
+        /* Section formatting */
         .section {
-            margin-bottom: 50px; /* Space between map and chart */
+            margin: 50px auto;
+            padding: 40px 30px;
+            max-width: 1000px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        /* Centering the map and chart */
+        /* Headers */
+        h1, h2 {
+            text-align: center;
+            color: #002244;
+            font-weight: bold;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 0.3em;
+        }
+
+        h2 {
+            font-size: 1.6em;
+            margin-top: 1.2em;
+        }
+
+        /* Paragraphs */
+        .section p {
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-top: 1em;
+            color: #004488;
+        }
+
+        /* Map and chart container centering */
+        #map-container,
+        #chart-container,
         .container {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
+            padding-top: 20px;
         }
 
-        /* Ensuring the map is properly centered */
-        #map-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            padding: 20px;
+        /* Buttons & dropdowns */
+        button, select {
+            margin: 10px 10px 20px 0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: white;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            color: #002244;
+            transition: all 0.2s ease;
         }
 
-        /* SVG styles for better visibility */
+        button:hover, select:hover {
+            transform: scale(1.03);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+        }
+
+        /* SVG styling */
         svg {
             border: 1px solid #ccc;
             background-color: white;
@@ -50,8 +122,30 @@
             }
         }
     </style>
+
 </head>
 <body>
+
+<nav id="navbar">
+    <a href="#overview-section">Overview</a>
+    <a href="#map-section">Map</a>
+    <a href="#chart-section">Temperature Trends</a>
+    <a href="#precipitation-section">Precipitation</a>
+</nav>
+
+
+<section id="overview-section" class="section">
+    <h1>The Impact of Climate Change on Urban Heat Islands (UHI) in Canada</h1>
+    <p>
+        Climate change is one of the most pressing challenges of our time, with rising global temperatures leading to more frequent and intense heatwaves.
+        In urban environments, this warming effect is further amplified by the UHI, where cities experience significantly higher temperatures than surrounding rural areas.
+        This occurs due to factors such as high concentrations of heat-absorbing surfaces, reduced vegetation, and human activities that generate heat.
+    </p>
+    <p>
+        As Canada experiences increasing temperature extremes, understanding the relationship between climate change and urban heat islands is crucial for developing strategies to mitigate their impact.
+        Cities like Toronto are particularly vulnerable, with densely built environments exacerbating heat retention, leading to health risks, energy demand spikes, and reduced overall livability.
+    </p>
+</section>
 
 <!-- MAP SECTION (Row 1) -->
 <section id="map-section" class="section">
@@ -67,6 +161,17 @@
     <div id="map-container">
         <svg id="map" width="800" height="600"></svg>
     </div>
+
+    <!-- INTERPRETATION OF THE MAP -->
+    <p>
+        This map visually represents areas in the city that are most susceptible to extreme heat. The map uses a color gradient, with lighter shades indicating lower vulnerability
+        and darker shades representing higher vulnerability. The vulnerability index is calculated based on factors such as surface temperature, green space availability, and population density.
+    </p>
+    <p>
+        From the visualization, it is evident that highly urbanized areas with dense infrastructure and limited vegetation tend to have greater heat vulnerability, particularly in the downtown core.
+        In contrast, regions with more greenery, such as parks and suburban neighborhoods, show lower vulnerability levels. Certain industrial zones, especially in Etobicoke and Scarborough,
+        show moderate to high vulnerability. This helps us pinpoint neighborhoods that need targeted heat mitigation strategies, such as increased tree planting and better access to cooling centers.
+    </p>
 </section>
 
 <!-- CHART SECTION (Row 2) -->
@@ -75,12 +180,34 @@
     <div class="container">
         <svg id="lineChart" width="800" height="400"></svg>
     </div>
+
+    <!-- LINE CHART DESCRIPTION -->
+    <p>
+        This graph is a crucial piece of evidence for analyzing how climate change contributes to the intensification of Urban Heat Islands (UHI) in Toronto.
+        The data shows periodic temperature variations, with some years experiencing sharp declines followed by noticeable rises.
+        Despite short-term fluctuations, there is a gradual upward trend, indicative of climate change effects.
+        This visualization serves as supporting evidence for the increasing urban heat effect in Toronto, demonstrating how rising temperatures contribute to intensifying urban heat islands.
+    </p>
 </section>
 
 
 <section id="precipitation-section" class="section">
     <h2>Shifts in Seasonal Precipitation Patterns</h2>
     <div id="chart-container"></div>
+
+    <!-- BAR CHART DESCRIPTION -->
+    <p>
+        This chart highlights changes in Toronto’s rainfall patterns over two time periods: 1961–1990 and 1991–2020.
+        The observed differences in precipitation levels are closely linked to the impacts of climate change, which directly influences urban heat islands (UHIs) and extreme weather events in the city.
+    </p>
+    <p>
+        While some months show increased precipitation in the recent period (1991–2020), others show a decline compared to the earlier period (1961–1990).
+        Variability in rainfall can influence surface temperatures, as drier conditions reduce evaporative cooling, exacerbating heat retention in urban areas.
+    </p>
+    <p>
+        Less precipitation in warmer months (June–September) means less cooling from rainfall, increasing heat vulnerability, especially in high-density urban zones.
+        Periods of reduced rainfall may also lead to drought conditions, which weaken the cooling effects of vegetation and increase heat stress in the city.
+    </p>
 </section>
 
 <script src="js/script.js" type="module"></script>  <!-- Map Script -->
