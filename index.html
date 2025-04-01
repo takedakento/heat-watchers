@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat Exposure Map</title>
+  <title>Toronto Heat & Census Data Map</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body {
@@ -25,11 +25,23 @@
     .legend text {
       font-size: 12px;
     }
+    #info-panel {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      max-width: 800px;
+    }
+    #info-panel h3 {
+      margin: 0 0 10px;
+    }
+    #info-panel p {
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Toronto Heat & Environment Map</h1>
+  <h1>Toronto Heat & Census Data Map</h1>
 
   <div>
     <button id="resetZoom">Reset Zoom</button>
@@ -44,6 +56,12 @@
 
   <!-- SVG container for the map -->
   <svg id="map" width="800" height="600"></svg>
+
+  <!-- Info panel below the map -->
+  <div id="info-panel">
+    <h3>DA Information</h3>
+    <p>Click on a dissemination area to see details here.</p>
+  </div>
 
   <!-- D3.js script -->
   <script src="js/script.js"></script>

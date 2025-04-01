@@ -1,24 +1,24 @@
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
 // 1) SETUP SVG & PROJECTION
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
 const width = 800, height = 600;
 const svg = d3.select("#map")
     .attr("width", width)
     .attr("height", height);
 
-// Group for drawing path shapes
+// Create a group for the map geometry
 const g = svg.append("g");
 
 // Define a projection for Toronto
 const projection = d3.geoMercator()
-    .center([-79.38, 43.7])  // long, lat for Toronto
+    .center([-79.38, 43.7])  // approximate center: lon, lat
     .scale(70000)
     .translate([width / 2, height / 2]);
 
-// Define a path generator
+// Path generator with our projection
 const path = d3.geoPath().projection(projection);
 
-// Define zoom behavior
+// Zoom behavior
 const zoom = d3.zoom()
     .scaleExtent([1, 8])
     .on("zoom", (event) => {
@@ -34,21 +34,20 @@ function resetZoom() {
 }
 d3.select("#resetZoom").on("click", resetZoom);
 
-// -----------------------------------------------------------------
-// 2) TOOLTIP
-// -----------------------------------------------------------------
-const tooltip = d3.select("body")
-  .append("div")
-  .attr("class", "tooltip");
+// -------------------------------------------------------------
+// 2) TOOLTIP (for hover)
+// -------------------------------------------------------------
+const tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip");
 
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
 // 3) LEGEND FUNCTION
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
 function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
     // Remove any existing legend
     svg.selectAll(".legend").remove();
 
-    // Create or select <defs> element
+    // Create or select <defs> for gradient
     let defs = svg.select("defs");
     if (defs.empty()) {
         defs = svg.append("defs");
@@ -93,9 +92,58 @@ function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
         .call(legendAxis);
 }
 
-// -----------------------------------------------------------------
-// 4) DRAW MAP FUNCTION
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
+// 4) UPDATE INFO PANEL
+// -------------------------------------------------------------
+function updateInfoPanel(d) {
+    // This function updates the #info-panel below the map
+    // Replace with any fields you want to display!
+    const infoPanel = d3.select("#info-panel");
+
+    // Clear out existing content
+    infoPanel.html("");
+
+    // Insert new content
+    // We’ll show DAUID plus four sample census fields (if present)
+    infoPanel.append("h3").text(`Dissemination Area: ${d.properties.DAUID}`);
+
+    // If your joined data includes these fields, display them:
+    infoPanel.append("p").html(
+      `<strong>Population (2016):</strong> ${
+        d.properties.population_2016 != null 
+          ? d.properties.population_2016 
+          : "N/A"
+      }`
+    );
+    infoPanel.append("p").html(
+      `<strong>Population Density (per km²):</strong> ${
+        d.properties.pop_density_km2 != null
+          ? d.properties.pop_density_km2.toFixed(1)
+          : "N/A"
+      }`
+    );
+    infoPanel.append("p").html(
+      `<strong>Median Income:</strong> ${
+        d.properties.median_income != null
+          ? `$${d.properties.median_income.toLocaleString()}`
+          : "N/A"
+      }`
+    );
+    infoPanel.append("p").html(
+      `<strong>Unemployment Rate (%):</strong> ${
+        d.properties.unemployment_rate != null
+          ? d.properties.unemployment_rate.toFixed(1) 
+          : "N/A"
+      }`
+    );
+
+    // You could also add more details like
+    // 'cool_mean', 'hospital_mean', 'canopy_percent', etc.
+}
+
+// -------------------------------------------------------------
+// 5) DRAW MAP FUNCTION
+// -------------------------------------------------------------
 function drawMap(layerConfig) {
     // Remove existing paths
     g.selectAll("path").remove();
@@ -115,12 +163,12 @@ function drawMap(layerConfig) {
         .attr("stroke", "#333")
         .attr("stroke-width", 0.5)
         .on("mouseover", (event, d) => {
+            // Simple hover tooltip for this layer’s value
             const val = valueFunc(d);
             tooltip
                 .style("display", "block")
                 .html(`
-                  <strong>DAUID:</strong> ${d.properties.DAUID}<br/>
-                  <strong>${label}:</strong> ${val.toFixed(2)}
+                    <strong>${label}:</strong> ${val.toFixed(2)}
                 `)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 10) + "px");
@@ -134,36 +182,39 @@ function drawMap(layerConfig) {
             d3.select(event.currentTarget)
                 .attr("stroke", "#333")
                 .attr("stroke-width", 0.5);
+        })
+        .on("click", (event, d) => {
+            // When user clicks a DA, show more census data below the map
+            updateInfoPanel(d);
         });
 
     // Update the legend
     drawLegend(colorScale.domain(), colorScale);
 }
 
-// -----------------------------------------------------------------
-// 5) LOAD THE SINGLE GEOJSON (data/data.geojson)
-// -----------------------------------------------------------------
+// -------------------------------------------------------------
+// 6) LOAD THE SINGLE GEOJSON (data/data.geojson)
+// -------------------------------------------------------------
 d3.json("data/data.geojson").then(myData => {
-    // We'll define the possible layers within the same dataset
+    // Define possible layers (exposure, canopy, etc.)
     const dataSets = {
         exposure: {
             label: "Heat Exposure (°C Days)",
-            valueFunc: d => d.properties.degree_days_20,  // 'degree_days_20'
+            valueFunc: d => d.properties.degree_days_20,
             colorScale: null
         },
         canopy: {
             label: "Tree Canopy (%)",
-            valueFunc: d => d.properties.canopy_percent,  // 'canopy_percent'
+            valueFunc: d => d.properties.canopy_percent,
             colorScale: null
         },
         impervious: {
             label: "Impervious Surface (%)",
-            valueFunc: d => d.properties.impervious_percent, // 'impervious_percent'
+            valueFunc: d => d.properties.impervious_percent,
             colorScale: null
         },
         coolAccess: {
             label: "Access to Cooling Centers (Higher=Better)",
-            // Invert distance so higher means better
             valueFunc: d => 1 / Math.max(d.properties.cool_mean, 0.000001),
             colorScale: null
         },
@@ -177,11 +228,11 @@ d3.json("data/data.geojson").then(myData => {
     // Create color scales for each layer
     Object.keys(dataSets).forEach(key => {
         const layer = dataSets[key];
-        // Get all values from the features for domain
+        // Gather all values
         const values = myData.features.map(layer.valueFunc);
         const domain = d3.extent(values);
 
-        // Pick a color scheme
+        // Choose color schemes
         let interpolator;
         switch (key) {
             case "exposure":
@@ -207,7 +258,6 @@ d3.json("data/data.geojson").then(myData => {
             .domain(domain)
             .interpolator(interpolator);
 
-        // Attach the full GeoJSON for drawing
         layer.data = myData;
     });
 
