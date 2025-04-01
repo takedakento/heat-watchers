@@ -1,57 +1,53 @@
-// Set up SVG dimensions
+// -------------------------------------------------------------
+// 1) SETUP SVG & PROJECTION
+// -------------------------------------------------------------
 const width = 800, height = 600;
 const svg = d3.select("#map")
     .attr("width", width)
     .attr("height", height);
 
-// Create a group inside the SVG for the map
+// Main group for drawing paths (shapes)
 const g = svg.append("g");
 
-// Define a projection for Toronto (Mercator projection)
+// Define a projection for Toronto (approx. center/scale)
 const projection = d3.geoMercator()
-    .center([-79.38, 43.7])  // Center on Toronto (longitude, latitude)
-    .scale(70000)           // Adjust scale to fit Toronto
+    .center([-79.38, 43.7]) // longitude, latitude
+    .scale(70000)
     .translate([width / 2, height / 2]);
 
-// Create a path generator
+// Define a path generator
 const path = d3.geoPath().projection(projection);
 
 // Define zoom behavior
 const zoom = d3.zoom()
-    .scaleExtent([1, 8])  // Allows zooming between 1x and 8x
+    .scaleExtent([1, 8])
     .on("zoom", (event) => {
-        g.attr("transform", event.transform);  // Move the map when zooming
+        g.attr("transform", event.transform);
     });
-
-// Apply zoom behavior to the SVG
 svg.call(zoom);
 
 // Function to reset zoom
 function resetZoom() {
     svg.transition()
-        .duration(750) // Smooth transition
-        .call(zoom.transform, d3.zoomIdentity); // Reset to original scale and position
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
 }
-
-// Attach event listener to the Reset Zoom button
 d3.select("#resetZoom").on("click", resetZoom);
 
-// Create a global tooltip
+// -------------------------------------------------------------
+// 2) TOOLTIP
+// -------------------------------------------------------------
 const tooltip = d3.select("body").append("div")
-    .attr("class", "tooltip")
-    .style("position", "absolute")
-    .style("display", "none")
-    .style("background", "white")
-    .style("border", "1px solid #333")
-    .style("padding", "5px")
-    .style("border-radius", "5px");
+  .attr("class", "tooltip");
 
-// Function to draw the legend
-function drawLegend(domain, colorScale) {
+// -------------------------------------------------------------
+// 3) LEGEND FUNCTION
+// -------------------------------------------------------------
+function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
     // Remove any existing legend
     svg.selectAll(".legend").remove();
 
-    // Create (or select) the defs element
+    // Create (or select) <defs> for gradient
     let defs = svg.select("defs");
     if (defs.empty()) {
         defs = svg.append("defs");
@@ -72,7 +68,8 @@ function drawLegend(domain, colorScale) {
         .attr("offset", "100%")
         .attr("stop-color", colorScale(domain[1]));
 
-    const legendWidth = 300, legendHeight = 10;
+    const legendWidth = 300;
+    const legendHeight = 10;
     const legendGroup = svg.append("g")
         .attr("class", "legend")
         .attr("transform", `translate(20, ${height - 50})`);
@@ -85,35 +82,49 @@ function drawLegend(domain, colorScale) {
     const legendScale = d3.scaleLinear()
         .domain(domain)
         .range([0, legendWidth]);
+
     const legendAxis = d3.axisBottom(legendScale)
         .ticks(5)
-        .tickFormat(d3.format(".2f"));
+        .tickFormat(labelFormatter);
 
     legendGroup.append("g")
         .attr("transform", `translate(0, ${legendHeight})`)
         .call(legendAxis);
 }
 
-// Function to draw the map based on the provided dataset
-function drawMap(dataset, valueKey, colorScale, label) {
+// -------------------------------------------------------------
+// 4) DRAW MAP FUNCTION
+// -------------------------------------------------------------
+function drawMap(dataset) {
     // Remove existing paths
     g.selectAll("path").remove();
 
+    // Extract relevant references
+    const data = dataset.data;
+    const colorScale = dataset.colorScale;
+    const valueFunc = dataset.valueFunc;
+    const label = dataset.label;
+
     // Draw map boundaries
     g.selectAll("path")
-        .data(dataset.features)
+        .data(data.features)
         .enter()
         .append("path")
         .attr("d", path)
-        .attr("fill", d => colorScale(d.properties[valueKey]))
+        .attr("fill", d => colorScale(valueFunc(d)))
         .attr("stroke", "#333")
         .attr("stroke-width", 0.5)
         .on("mouseover", (event, d) => {
-            tooltip.style("display", "block")
-                .html(`<strong>DAUID:</strong> ${d.properties.DAUID}<br>
-                       <strong>${label}:</strong> ${d.properties[valueKey].toFixed(2)}`)
+            const val = valueFunc(d);
+            tooltip
+                .style("display", "block")
+                .html(`
+                    <strong>DAUID:</strong> ${d.properties.DAUID}<br/>
+                    <strong>${label}:</strong> ${val.toFixed(2)}
+                `)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 10) + "px");
+
             d3.select(event.currentTarget)
                 .attr("stroke", "#000")
                 .attr("stroke-width", 2);
@@ -125,34 +136,117 @@ function drawMap(dataset, valueKey, colorScale, label) {
                 .attr("stroke-width", 0.5);
         });
 
-    // Draw the legend for the current dataset
-    drawLegend(d3.extent(dataset.features, d => d.properties[valueKey]), colorScale);
+    // Update legend
+    drawLegend(colorScale.domain(), colorScale);
 }
 
-// Load the GeoJSON datasets concurrently
+// -------------------------------------------------------------
+// 5) LOAD ALL DATASETS
+// -------------------------------------------------------------
 Promise.all([
-    d3.json("data/pca_vuln_index.geojson"),
-    d3.json("data/exposure_degree20.geojson")
-]).then(([vulnData, exposureData]) => {
-    // Define color scales for each dataset
-    const vulnExtent = d3.extent(vulnData.features, d => d.properties.Heat_Vuln);
-    const vulnColor = d3.scaleSequential(d3.interpolateReds).domain(vulnExtent);
+    d3.json("data/pca_vuln_index.geojson"),    // [0] Heat Vulnerability
+    d3.json("data/exposure_degree20.geojson"), // [1] Heat Exposure
+    d3.json("data/canopy_cover.geojson"),      // [2] Tree Canopy
+    d3.json("data/impervious_percentage.geojson"), // [3] Impervious Surface
+    d3.json("data/access_cool.geojson"),       // [4] Access to Cooling
+    d3.json("data/access_hospital.geojson")    // [5] Access to Hospitals
+]).then(([vulnData, exposureData, canopyData, impervData, coolData, hospData]) => {
 
-    const exposureExtent = d3.extent(exposureData.features, d => d.properties.SUM_temper);
-    const exposureColor = d3.scaleSequential(d3.interpolateOranges).domain(exposureExtent);
-
-    // Initially draw the vulnerability map
-    drawMap(vulnData, "Heat_Vuln", vulnColor, "Heat Vulnerability");
-
-    // Attach event listener to the dropdown to toggle between datasets
-    d3.select("#data-toggle").on("change", function() {
-        const selection = this.value;
-        if (selection === "vulnerability") {
-            drawMap(vulnData, "Heat_Vuln", vulnColor, "Heat Vulnerability");
-        } else {
-            drawMap(exposureData, "SUM_temper", exposureColor, "Heat Exposure (°C Days)");
+    // Create a central object to hold data & config for each layer
+    const dataSets = {
+        vulnerability: {
+            data: vulnData,
+            label: "Heat Vulnerability",
+            valueFunc: d => d.properties.Heat_Vuln, 
+            // We'll define colorScale after computing domain
+            colorScale: null
+        },
+        exposure: {
+            data: exposureData,
+            label: "Heat Exposure (°C Days)",
+            valueFunc: d => d.properties.SUM_temper,
+            colorScale: null
+        },
+        canopy: {
+            data: canopyData,
+            label: "Tree Canopy (%)",
+            valueFunc: d => d.properties.canopy_per, // 'canopy_per'
+            colorScale: null
+        },
+        impervious: {
+            data: impervData,
+            label: "Impervious Surface (%)",
+            valueFunc: d => d.properties.imper_coun, // 'imper_coun'
+            colorScale: null
+        },
+        coolAccess: {
+            data: coolData,
+            label: "Cooling Center Access (Higher=Better)",
+            // Invert the distance so higher values => better
+            valueFunc: d => 1 / Math.max(d.properties.MEAN, 0.000001),
+            colorScale: null
+        },
+        hospitalAccess: {
+            data: hospData,
+            label: "Hospital Access (Higher=Better)",
+            // Invert the distance so higher values => better
+            valueFunc: d => 1 / Math.max(d.properties.MEAN, 0.000001),
+            colorScale: null
         }
+    };
+
+    // ---------------------------------------------------------
+    // Create color scales for each dataset
+    // We use d3.extent on the "valueFunc" to find min & max
+    // ---------------------------------------------------------
+    Object.keys(dataSets).forEach(key => {
+        const ds = dataSets[key];
+        const values = ds.data.features.map(ds.valueFunc);
+        const domain = d3.extent(values);
+
+        // Choose a suitable color scheme for each layer
+        let interpolator;
+        switch (key) {
+            case "vulnerability":
+                interpolator = d3.interpolateReds;
+                break;
+            case "exposure":
+                interpolator = d3.interpolateOranges;
+                break;
+            case "canopy":
+                interpolator = d3.interpolateGreens;
+                break;
+            case "impervious":
+                interpolator = d3.interpolateGreys;
+                break;
+            case "coolAccess":
+                interpolator = d3.interpolateBlues;
+                break;
+            case "hospitalAccess":
+                interpolator = d3.interpolatePurples;
+                break;
+            default:
+                interpolator = d3.interpolateViridis;
+        }
+
+        ds.colorScale = d3.scaleSequential()
+            .domain(domain)
+            .interpolator(interpolator);
     });
+
+    // ---------------------------------------------------------
+    // INITIAL DRAW: Default to Heat Vulnerability
+    // ---------------------------------------------------------
+    drawMap(dataSets.vulnerability);
+
+    // ---------------------------------------------------------
+    // DROPDOWN EVENT: Update map based on selected layer
+    // ---------------------------------------------------------
+    d3.select("#data-toggle").on("change", function() {
+        const selectedKey = this.value; 
+        drawMap(dataSets[selectedKey]);
+    });
+
 }).catch(error => {
     console.error("Error loading data:", error);
 });

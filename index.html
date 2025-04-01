@@ -1,21 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toronto Heat Vulnerability Map</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Load D3.js -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toronto Heat Vulnerability Map</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Load D3.js -->
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #map {
+      border: 1px solid #ccc;
+    }
+    .tooltip {
+      position: absolute;
+      display: none;
+      background: white;
+      border: 1px solid #333;
+      padding: 5px;
+      border-radius: 5px;
+      pointer-events: none; /* Don't block mouse events */
+    }
+    .legend text {
+      font-size: 12px;
+    }
+  </style>
 </head>
 <body>
-    <h1>Toronto Heat Vulnerability Map</h1>
-    
+
+  <h1>Toronto Heat Vulnerability Map</h1>
+
+  <div>
     <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
-        <option value="vulnerability">Heat Vulnerability</option>
-        <option value="exposure">Heat Exposure</option>
+      <option value="vulnerability">Heat Vulnerability</option>
+      <option value="exposure">Heat Exposure</option>
+      <option value="canopy">Tree Canopy Coverage</option>
+      <option value="impervious">Impervious Surface</option>
+      <option value="coolAccess">Access to Cooling Centers</option>
+      <option value="hospitalAccess">Access to Hospitals</option>
     </select>
-    
-    <svg id="map"></svg> <!-- SVG container for the map -->
-    <script src="js/script.js"></script> <!-- D3.js script -->
+  </div>
+
+  <!-- SVG container for the map -->
+  <svg id="map" width="800" height="600"></svg>
+
+  <!-- D3.js script -->
+  <script src="js/script.js"></script>
 </body>
 </html>
