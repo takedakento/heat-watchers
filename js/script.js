@@ -1,17 +1,17 @@
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 // 1) SETUP SVG & PROJECTION
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 const width = 800, height = 600;
 const svg = d3.select("#map")
     .attr("width", width)
     .attr("height", height);
 
-// Main group for drawing paths (shapes)
+// Group for drawing path shapes
 const g = svg.append("g");
 
-// Define a projection for Toronto (approx. center/scale)
+// Define a projection for Toronto
 const projection = d3.geoMercator()
-    .center([-79.38, 43.7]) // longitude, latitude
+    .center([-79.38, 43.7])  // long, lat for Toronto
     .scale(70000)
     .translate([width / 2, height / 2]);
 
@@ -26,7 +26,7 @@ const zoom = d3.zoom()
     });
 svg.call(zoom);
 
-// Function to reset zoom
+// Reset zoom function
 function resetZoom() {
     svg.transition()
         .duration(750)
@@ -34,20 +34,21 @@ function resetZoom() {
 }
 d3.select("#resetZoom").on("click", resetZoom);
 
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 // 2) TOOLTIP
-// -------------------------------------------------------------
-const tooltip = d3.select("body").append("div")
+// -----------------------------------------------------------------
+const tooltip = d3.select("body")
+  .append("div")
   .attr("class", "tooltip");
 
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 // 3) LEGEND FUNCTION
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
     // Remove any existing legend
     svg.selectAll(".legend").remove();
 
-    // Create (or select) <defs> for gradient
+    // Create or select <defs> element
     let defs = svg.select("defs");
     if (defs.empty()) {
         defs = svg.append("defs");
@@ -55,7 +56,7 @@ function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
         defs.selectAll("#legend-gradient").remove();
     }
 
-    // Append a linearGradient for the legend
+    // Append linearGradient for the legend
     const gradient = defs.append("linearGradient")
         .attr("id", "legend-gradient")
         .attr("x1", "0%").attr("y1", "0%")
@@ -92,20 +93,19 @@ function drawLegend(domain, colorScale, labelFormatter = d3.format(".2f")) {
         .call(legendAxis);
 }
 
-// -------------------------------------------------------------
+// -----------------------------------------------------------------
 // 4) DRAW MAP FUNCTION
-// -------------------------------------------------------------
-function drawMap(dataset) {
+// -----------------------------------------------------------------
+function drawMap(layerConfig) {
     // Remove existing paths
     g.selectAll("path").remove();
 
-    // Extract relevant references
-    const data = dataset.data;
-    const colorScale = dataset.colorScale;
-    const valueFunc = dataset.valueFunc;
-    const label = dataset.label;
+    const data = layerConfig.data;
+    const colorScale = layerConfig.colorScale;
+    const valueFunc = layerConfig.valueFunc;
+    const label = layerConfig.label;
 
-    // Draw map boundaries
+    // Draw polygons
     g.selectAll("path")
         .data(data.features)
         .enter()
@@ -119,8 +119,8 @@ function drawMap(dataset) {
             tooltip
                 .style("display", "block")
                 .html(`
-                    <strong>DAUID:</strong> ${d.properties.DAUID}<br/>
-                    <strong>${label}:</strong> ${val.toFixed(2)}
+                  <strong>DAUID:</strong> ${d.properties.DAUID}<br/>
+                  <strong>${label}:</strong> ${val.toFixed(2)}
                 `)
                 .style("left", (event.pageX + 10) + "px")
                 .style("top", (event.pageY - 10) + "px");
@@ -136,80 +136,54 @@ function drawMap(dataset) {
                 .attr("stroke-width", 0.5);
         });
 
-    // Update legend
+    // Update the legend
     drawLegend(colorScale.domain(), colorScale);
 }
 
-// -------------------------------------------------------------
-// 5) LOAD ALL DATASETS
-// -------------------------------------------------------------
-Promise.all([
-    d3.json("data/pca_vuln_index.geojson"),    // [0] Heat Vulnerability
-    d3.json("data/exposure_degree20.geojson"), // [1] Heat Exposure
-    d3.json("data/canopy_cover.geojson"),      // [2] Tree Canopy
-    d3.json("data/impervious_percentage.geojson"), // [3] Impervious Surface
-    d3.json("data/access_cool.geojson"),       // [4] Access to Cooling
-    d3.json("data/access_hospital.geojson")    // [5] Access to Hospitals
-]).then(([vulnData, exposureData, canopyData, impervData, coolData, hospData]) => {
-
-    // Create a central object to hold data & config for each layer
+// -----------------------------------------------------------------
+// 5) LOAD THE SINGLE GEOJSON (data/data.geojson)
+// -----------------------------------------------------------------
+d3.json("data/data.geojson").then(myData => {
+    // We'll define the possible layers within the same dataset
     const dataSets = {
-        vulnerability: {
-            data: vulnData,
-            label: "Heat Vulnerability",
-            valueFunc: d => d.properties.Heat_Vuln, 
-            // We'll define colorScale after computing domain
-            colorScale: null
-        },
         exposure: {
-            data: exposureData,
             label: "Heat Exposure (°C Days)",
-            valueFunc: d => d.properties.SUM_temper,
+            valueFunc: d => d.properties.degree_days_20,  // 'degree_days_20'
             colorScale: null
         },
         canopy: {
-            data: canopyData,
             label: "Tree Canopy (%)",
-            valueFunc: d => d.properties.canopy_per, // 'canopy_per'
+            valueFunc: d => d.properties.canopy_percent,  // 'canopy_percent'
             colorScale: null
         },
         impervious: {
-            data: impervData,
             label: "Impervious Surface (%)",
-            valueFunc: d => d.properties.imper_coun, // 'imper_coun'
+            valueFunc: d => d.properties.impervious_percent, // 'impervious_percent'
             colorScale: null
         },
         coolAccess: {
-            data: coolData,
-            label: "Cooling Center Access (Higher=Better)",
-            // Invert the distance so higher values => better
-            valueFunc: d => 1 / Math.max(d.properties.MEAN, 0.000001),
+            label: "Access to Cooling Centers (Higher=Better)",
+            // Invert distance so higher means better
+            valueFunc: d => 1 / Math.max(d.properties.cool_mean, 0.000001),
             colorScale: null
         },
         hospitalAccess: {
-            data: hospData,
-            label: "Hospital Access (Higher=Better)",
-            // Invert the distance so higher values => better
-            valueFunc: d => 1 / Math.max(d.properties.MEAN, 0.000001),
+            label: "Access to Hospitals (Higher=Better)",
+            valueFunc: d => 1 / Math.max(d.properties.hospital_mean, 0.000001),
             colorScale: null
         }
     };
 
-    // ---------------------------------------------------------
-    // Create color scales for each dataset
-    // We use d3.extent on the "valueFunc" to find min & max
-    // ---------------------------------------------------------
+    // Create color scales for each layer
     Object.keys(dataSets).forEach(key => {
-        const ds = dataSets[key];
-        const values = ds.data.features.map(ds.valueFunc);
+        const layer = dataSets[key];
+        // Get all values from the features for domain
+        const values = myData.features.map(layer.valueFunc);
         const domain = d3.extent(values);
 
-        // Choose a suitable color scheme for each layer
+        // Pick a color scheme
         let interpolator;
         switch (key) {
-            case "vulnerability":
-                interpolator = d3.interpolateReds;
-                break;
             case "exposure":
                 interpolator = d3.interpolateOranges;
                 break;
@@ -229,21 +203,20 @@ Promise.all([
                 interpolator = d3.interpolateViridis;
         }
 
-        ds.colorScale = d3.scaleSequential()
+        layer.colorScale = d3.scaleSequential()
             .domain(domain)
             .interpolator(interpolator);
+
+        // Attach the full GeoJSON for drawing
+        layer.data = myData;
     });
 
-    // ---------------------------------------------------------
-    // INITIAL DRAW: Default to Heat Vulnerability
-    // ---------------------------------------------------------
-    drawMap(dataSets.vulnerability);
+    // Draw the initial layer (Heat Exposure by default)
+    drawMap(dataSets.exposure);
 
-    // ---------------------------------------------------------
-    // DROPDOWN EVENT: Update map based on selected layer
-    // ---------------------------------------------------------
+    // Dropdown event to switch layers
     d3.select("#data-toggle").on("change", function() {
-        const selectedKey = this.value; 
+        const selectedKey = this.value;
         drawMap(dataSets[selectedKey]);
     });
 

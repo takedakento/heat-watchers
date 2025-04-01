@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat Vulnerability Map</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Load D3.js -->
+  <title>Toronto Heat Exposure Map</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -29,15 +29,14 @@
 </head>
 <body>
 
-  <h1>Toronto Heat Vulnerability Map</h1>
+  <h1>Toronto Heat & Environment Map</h1>
 
   <div>
     <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
-      <option value="vulnerability">Heat Vulnerability</option>
-      <option value="exposure">Heat Exposure</option>
-      <option value="canopy">Tree Canopy Coverage</option>
-      <option value="impervious">Impervious Surface</option>
+      <option value="exposure">Heat Exposure (°C Days)</option>
+      <option value="canopy">Tree Canopy (%)</option>
+      <option value="impervious">Impervious Surface (%)</option>
       <option value="coolAccess">Access to Cooling Centers</option>
       <option value="hospitalAccess">Access to Hospitals</option>
     </select>
