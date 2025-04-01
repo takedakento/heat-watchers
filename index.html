@@ -34,16 +34,35 @@
     #info-panel h3 {
       margin: 0 0 10px;
     }
-    #info-panel .bar-chart {
-      margin: 10px 0;
+    /* 
+      BAR CHART STYLES 
+      Using flex layout so that each bar is aligned horizontally in a row:
+        [Label] [Bar fill] [Value]
+    */
+    .bar-chart {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
     }
-    #info-panel .bar-chart svg {
-      background: #f9f9f9;
-    }
-    #info-panel .bar-label {
+    .bar-label {
+      width: 170px; /* fixed label width to align all labels */
       font-weight: bold;
-      margin-bottom: 3px;
-      display: inline-block;
+    }
+    .bar-wrapper {
+      flex: 1;
+      background: #ddd; /* background track of the bar */
+      height: 20px;
+      margin: 0 10px; /* spacing between label and value */
+      position: relative;
+    }
+    .bar-fill {
+      background: #69b3a2; /* actual bar fill color */
+      height: 100%;
+      width: 0%; /* set dynamically in JS */
+    }
+    .bar-value {
+      width: 60px; /* fixed width for numeric values */
+      text-align: right;
     }
   </style>
 </head>
