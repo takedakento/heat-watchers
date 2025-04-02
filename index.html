@@ -3,28 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat & Census Data Map</title>
+  <title>Toronto Heat & Census (Leaflet + OSM)</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <!-- D3 -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Leaflet JS (must come before script.js) -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ></script>
+
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
     }
     #map {
+      width: 800px;
+      height: 600px;
       border: 1px solid #ccc;
     }
-    .tooltip {
-      position: absolute;
-      display: none;
-      background: white;
-      border: 1px solid #333;
-      padding: 5px;
-      border-radius: 5px;
-      pointer-events: none; /* Don't block mouse events */
-    }
-    .legend text {
-      font-size: 12px;
-    }
+    /* Info panel for bar charts, etc. */
     #info-panel {
       margin-top: 20px;
       padding: 10px;
@@ -34,44 +37,54 @@
     #info-panel h3 {
       margin: 0 0 10px;
     }
-    /* 
-      BAR CHART STYLES 
-      Using flex layout so that each bar is aligned horizontally in a row:
-        [Label] [Bar fill] [Value]
-    */
+    /* Horizontal bars with flex layout */
     .bar-chart {
       display: flex;
       align-items: center;
       margin: 8px 0;
     }
     .bar-label {
-      width: 170px; /* fixed label width to align all labels */
+      width: 160px;
       font-weight: bold;
     }
     .bar-wrapper {
       flex: 1;
-      background: #ddd; /* background track of the bar */
+      background: #ddd;
       height: 20px;
-      margin: 0 10px; /* spacing between label and value */
+      margin: 0 10px;
       position: relative;
     }
     .bar-fill {
-      background: #69b3a2; /* actual bar fill color */
+      background: #69b3a2;
       height: 100%;
-      width: 0%; /* set dynamically in JS */
+      width: 0%;
     }
     .bar-value {
-      width: 60px; /* fixed width for numeric values */
+      width: 60px;
       text-align: right;
+    }
+    /* Legend styling */
+    .info-legend {
+      background: white;
+      padding: 6px 8px;
+      font: 14px/16px Arial, Helvetica, sans-serif;
+      border: 1px solid #ccc;
+    }
+    .info-legend h4 {
+      margin: 2px 0;
+      font-weight: bold;
+    }
+    .leaflet-top.leaflet-right .info-legend {
+      margin-right: 10px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Toronto Heat & Census Data Map</h1>
+  <h1>Toronto Heat & Census (Leaflet + OSM)</h1>
 
+  <!-- Dropdown for switching layers -->
   <div>
-    <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
       <option value="exposure">Heat Exposure (°C Days)</option>
       <option value="canopy">Tree Canopy (%)</option>
@@ -81,8 +94,8 @@
     </select>
   </div>
 
-  <!-- SVG container for the map -->
-  <svg id="map" width="800" height="600"></svg>
+  <!-- The Leaflet map container -->
+  <div id="map"></div>
 
   <!-- Info panel below the map -->
   <div id="info-panel">
@@ -90,7 +103,7 @@
     <p>Click on a dissemination area to see details here.</p>
   </div>
 
-  <!-- D3.js script -->
+  <!-- Main logic script -->
   <script src="js/script.js"></script>
 </body>
 </html>
