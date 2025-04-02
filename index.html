@@ -27,7 +27,6 @@
       height: 600px;
       border: 1px solid #ccc;
     }
-    /* Info panel for bar charts, etc. */
     #info-panel {
       margin-top: 20px;
       padding: 10px;
@@ -37,7 +36,6 @@
     #info-panel h3 {
       margin: 0 0 10px;
     }
-    /* Horizontal bars with flex layout */
     .bar-chart {
       display: flex;
       align-items: center;
@@ -63,7 +61,6 @@
       width: 60px;
       text-align: right;
     }
-    /* Legend styling */
     .info-legend {
       background: white;
       padding: 6px 8px;
@@ -83,8 +80,9 @@
 
   <h1>Toronto Heat & Census (Leaflet + OSM)</h1>
 
-  <!-- Dropdown for switching layers -->
+  <!-- Controls for layer switch + zoom reset -->
   <div>
+    <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
       <option value="exposure">Heat Exposure (°C Days)</option>
       <option value="canopy">Tree Canopy (%)</option>
@@ -94,16 +92,13 @@
     </select>
   </div>
 
-  <!-- The Leaflet map container -->
   <div id="map"></div>
 
-  <!-- Info panel below the map -->
   <div id="info-panel">
     <h3>DA Information</h3>
     <p>Click on a dissemination area to see details here.</p>
   </div>
 
-  <!-- Main logic script -->
   <script src="js/script.js"></script>
 </body>
 </html>

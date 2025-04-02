@@ -1,8 +1,14 @@
 /***************************************************************
  * 1) LEAFLET MAP + OSM BASEMAP
  ***************************************************************/
-const map = L.map("map").setView([43.7, -79.38], 11); // Toronto center, zoom 11
+// Initial Toronto center and zoom
+const INITIAL_CENTER = [43.7, -79.38];
+const INITIAL_ZOOM = 11;
 
+// Create the Leaflet map
+const map = L.map("map").setView(INITIAL_CENTER, INITIAL_ZOOM);
+
+// Add OpenStreetMap tiles
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
   {
@@ -13,10 +19,8 @@ L.tileLayer(
 /***************************************************************
  * 2) GLOBAL VARIABLES & SCALES
  ***************************************************************/
-// We'll store the Leaflet GeoJSON layer so we can re-style it on demand
 let geoJsonLayer;
 
-// Data sets (5 layers)
 const dataSets = {
   exposure: {
     label: "Heat Exposure (°C Days)",
@@ -35,7 +39,6 @@ const dataSets = {
   },
   coolAccess: {
     label: "Access to Cooling (Higher=Better)",
-    // Invert distance so shorter distance => higher
     valueFunc: d => 1 / Math.max(d.properties.cool_mean, 0.000001),
     colorScale: null
   },
@@ -46,21 +49,21 @@ const dataSets = {
   }
 };
 
-// For bar charts, we want city-wide max values (except unemployment uses 100)
+// For bar charts
 const maxValues = {
   population_2016: 0,
   pop_density_km2: 0,
   median_income: 0,
-  unemployment_rate: 0 // We'll store the city-wide max but use 100 for the bar
+  unemployment_rate: 0
 };
 
 /***************************************************************
- * 3) SIMPLE BAR CHART (FOR INFO PANEL)
+ * 3) SIMPLE BAR CHART
  ***************************************************************/
 function drawBar(container, config) {
   const val = config.value || 0;
   const maxVal = config.max || 1;
-  const frac = Math.min(val / maxVal, 1); // clamp 0..1
+  const frac = Math.min(val / maxVal, 1);
 
   const barRow = container.append("div")
     .attr("class", "bar-chart");
@@ -82,48 +85,41 @@ function drawBar(container, config) {
 }
 
 /***************************************************************
- * 4) INFO PANEL ON CLICK
+ * 4) INFO PANEL
  ***************************************************************/
 function updateInfoPanel(feature) {
   const props = feature.properties;
   const infoPanel = d3.select("#info-panel");
   infoPanel.html("");
 
-  // Title
   infoPanel.append("h3").text(`DAUID: ${props.DAUID}`);
 
   infoPanel.append("p").text("Census Data:");
   const barContainer = infoPanel.append("div");
 
-  // 1) Population
+  // Extended bar charts
   drawBar(barContainer, {
     label: "Population (2016)",
     value: props.population_2016,
     max: maxValues.population_2016,
     format: d3.format(",")
   });
-
-  // 2) Pop Density
   drawBar(barContainer, {
     label: "Pop. Density (per km²)",
     value: props.pop_density_km2,
     max: maxValues.pop_density_km2,
     format: d3.format(".1f")
   });
-
-  // 3) Median Income
   drawBar(barContainer, {
     label: "Median Income ($)",
     value: props.median_income,
     max: maxValues.median_income,
     format: d3.format(",")
   });
-
-  // 4) Unemployment Rate => Use 0..100 scale
   drawBar(barContainer, {
     label: "Unemployment Rate (%)",
     value: props.unemployment_rate,
-    max: 100, // fixed range from 0..100
+    max: 100,
     format: d3.format(".1f")
   });
 }
@@ -175,12 +171,10 @@ function onEachFeature(feature, layer) {
 }
 
 /***************************************************************
- * 6) UPDATE MAP STYLE & LEGEND
+ * 6) UPDATE STYLE & LEGEND
  ***************************************************************/
 function updateMapStyle() {
-  // Restyle polygons
   geoJsonLayer.setStyle(styleFeature);
-  // Update the continuous gradient legend
   updateLegend();
 }
 
@@ -202,10 +196,8 @@ function updateLegend() {
     const domain = ds.colorScale.domain();
     const [minVal, maxVal] = domain;
 
-    // Title
     div.innerHTML = `<h4>${ds.label}</h4>`;
 
-    // A single gradient bar from minVal color to maxVal color
     const minColor = ds.colorScale(minVal);
     const maxColor = ds.colorScale(maxVal);
 
@@ -228,25 +220,33 @@ function updateLegend() {
 }
 
 /***************************************************************
- * 8) LOAD GEOJSON & INITIALIZE
+ * 8) ZOOM RESET
+ ***************************************************************/
+// This is the new "Reset Zoom" logic
+function resetZoom() {
+  // Jump back to the original center/zoom
+  map.setView(INITIAL_CENTER, INITIAL_ZOOM);
+}
+
+// Attach to the button
+document.getElementById("resetZoom").addEventListener("click", resetZoom);
+
+/***************************************************************
+ * 9) LOAD DATA + INIT
  ***************************************************************/
 d3.json("data/data.geojson").then(data => {
   const features = data.features;
 
-  // Find city-wide max for 3 fields (the 4th is unemployment -> 100%):
+  // Compute city-wide maxima
   features.forEach(f => {
     const p = f.properties;
-    maxValues.population_2016 
-      = Math.max(maxValues.population_2016, p.population_2016 || 0);
-    maxValues.pop_density_km2 
-      = Math.max(maxValues.pop_density_km2, p.pop_density_km2 || 0);
-    maxValues.median_income 
-      = Math.max(maxValues.median_income, p.median_income || 0);
-    maxValues.unemployment_rate 
-      = Math.max(maxValues.unemployment_rate, p.unemployment_rate || 0);
+    maxValues.population_2016 = Math.max(maxValues.population_2016, p.population_2016 || 0);
+    maxValues.pop_density_km2 = Math.max(maxValues.pop_density_km2, p.pop_density_km2 || 0);
+    maxValues.median_income = Math.max(maxValues.median_income, p.median_income || 0);
+    maxValues.unemployment_rate = Math.max(maxValues.unemployment_rate, p.unemployment_rate || 0);
   });
 
-  // Build color scales for each layer
+  // Build color scales
   Object.keys(dataSets).forEach(key => {
     const ds = dataSets[key];
     const vals = features.map(ds.valueFunc);
@@ -278,20 +278,20 @@ d3.json("data/data.geojson").then(data => {
       .interpolator(interpolator);
   });
 
-  // Create Leaflet GeoJSON layer
+  // Create the Leaflet GeoJSON layer
   geoJsonLayer = L.geoJson(data, {
     style: styleFeature,
     onEachFeature: onEachFeature
   }).addTo(map);
 
-  // Initial legend
+  // Initialize the legend
   updateLegend();
 
-  // Dropdown event
+  // On dropdown change
   d3.select("#data-toggle").on("change", () => {
     updateMapStyle();
   });
 
 }).catch(err => {
-  console.error("Error loading data:", err);
+  console.error("Error loading GeoJSON:", err);
 });
