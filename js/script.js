@@ -1,260 +1,397 @@
-// Set up SVG dimensions
-const width = 800, height = 600;
-const svg = d3.select("#map")
-    .attr("width", width)
-    .attr("height", height);
+/***************************************************************
+ * 1) LEAFLET MAP + OSM BASEMAP
+ ***************************************************************/
+const INITIAL_CENTER = [43.7, -79.38];
+const INITIAL_ZOOM = 11;
 
-// Create a group inside the SVG for the map
-const g = svg.append("g");
+// Create Leaflet map
+const map = L.map("map").setView(INITIAL_CENTER, INITIAL_ZOOM);
 
-// Define a projection for Toronto (Mercator projection)
-const projection = d3.geoMercator()
-    .center([-79.38, 43.7])  // Center on Toronto (longitude, latitude)
-    .scale(70000)           // Adjust scale to fit Toronto
-    .translate([width / 2, height / 2]);
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
+  {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/">' +
+      'OpenStreetMap</a> contributors'
+  }
+).addTo(map);
 
-// Create a path generator
-const path = d3.geoPath().projection(projection);
+/***************************************************************
+ * 2) GLOBAL VARIABLES & SCALES
+ ***************************************************************/
+// We'll store the raw GeoJSON for reference (Turf analysis)
+let geoJsonData = null;
+// Leaflet geoJson layer
+let geoJsonLayer = null;
+// DAUID -> Leaflet layer map
+let featureLayerMap = {};
+// Single marker for the search location
+let searchMarker = null;
+// Keep track of any previously highlighted polygon
+let previouslyHighlightedLayer = null;
+// The currently “active” DA feature (clicked or found via search)
+let activeFeature = null;
 
-// Define zoom behavior
-const zoom = d3.zoom()
-    .scaleExtent([1, 8])  // Allows zooming between 1x and 8x
-    .on("zoom", (event) => {
-        g.attr("transform", event.transform);  // Move the map when zooming
-    });
+// Different data sets for toggling layers
+const dataSets = {
+  exposure: {
+    label: "Heat Exposure (°C Days)",
+    valueFunc: (f) => f.properties.degree_days_20,
+    colorScale: null
+  },
+  canopy: {
+    label: "Tree Canopy (%)",
+    valueFunc: (f) => f.properties.canopy_percent,
+    colorScale: null
+  },
+  impervious: {
+    label: "Impervious Surface (%)",
+    valueFunc: (f) => f.properties.impervious_percent,
+    colorScale: null
+  },
+  coolAccess: {
+    label: "Access to Cooling (Higher=Better)",
+    valueFunc: (f) => 1 / Math.max(f.properties.cool_mean, 0.000001),
+    colorScale: null
+  },
+  hospitalAccess: {
+    label: "Access to Hospitals (Higher=Better)",
+    valueFunc: (f) => 1 / Math.max(f.properties.hospital_mean, 0.000001),
+    colorScale: null
+  }
+};
 
-// Apply zoom behavior to the SVG
-svg.call(zoom);
+// For bar charts in the info panel
+const maxValues = {
+  population_2016: 0,
+  pop_density_km2: 0,
+  median_income: 0,
+  unemployment_rate: 0
+};
 
-// Function to reset zoom
-function resetZoom() {
-    svg.transition()
-        .duration(750) // Smooth transition
-        .call(zoom.transform, d3.zoomIdentity); // Reset to original scale and position
+/***************************************************************
+ * 3) BAR CHART & INFO PANEL
+ ***************************************************************/
+function drawBar(container, config) {
+  const val = config.value || 0;
+  const maxVal = config.max || 1;
+  const frac = Math.min(val / maxVal, 1);
+
+  // Each bar is a row with label, a bar track, and a numeric value
+  const barRow = container.append("div")
+    .attr("class", "bar-chart");
+
+  barRow.append("div")
+    .attr("class", "bar-label")
+    .text(config.label);
+
+  const barWrapper = barRow.append("div")
+    .attr("class", "bar-wrapper");
+
+  barWrapper.append("div")
+    .attr("class", "bar-fill")
+    .style("width", (frac * 100) + "%");
+
+  barRow.append("div")
+    .attr("class", "bar-value")
+    .text(config.format ? config.format(val) : val);
 }
 
-// Attach event listener to the Reset Zoom button
-d3.select("#resetZoom").on("click", resetZoom);
+function updateInfoPanel(feature) {
+  const props = feature.properties;
+  const infoPanel = d3.select("#info-panel");
+  infoPanel.html(""); // Clear old content
 
-// Create a global tooltip
-const tooltip = d3.select("body").append("div")
-    .attr("class", "tooltip")
-    .style("position", "absolute")
-    .style("display", "none")
-    .style("background", "white")
-    .style("border", "1px solid #333")
-    .style("padding", "5px")
-    .style("border-radius", "5px");
+  infoPanel.append("h3").text(`DAUID: ${props.DAUID}`);
+  infoPanel.append("p").text("Census Data:");
 
-// Function to draw the legend
-function drawLegend(domain, colorScale) {
-    // Remove any existing legend
-    svg.selectAll(".legend").remove();
+  const barContainer = infoPanel.append("div");
+  drawBar(barContainer, {
+    label: "Population (2016)",
+    value: props.population_2016,
+    max: maxValues.population_2016,
+    format: d3.format(",")
+  });
+  drawBar(barContainer, {
+    label: "Pop. Density (per km²)",
+    value: props.pop_density_km2,
+    max: maxValues.pop_density_km2,
+    format: d3.format(".1f")
+  });
+  drawBar(barContainer, {
+    label: "Median Income ($)",
+    value: props.median_income,
+    max: maxValues.median_income,
+    format: d3.format(",")
+  });
+  drawBar(barContainer, {
+    label: "Unemployment Rate (%)",
+    value: props.unemployment_rate,
+    max: 100, // show relative to 100
+    format: d3.format(".1f")
+  });
+}
 
-    // Create (or select) the defs element
-    let defs = svg.select("defs");
-    if (defs.empty()) {
-        defs = svg.append("defs");
-    } else {
-        defs.selectAll("#legend-gradient").remove();
+/***************************************************************
+ * 4) STYLING & HIGHLIGHT
+ ***************************************************************/
+// Base style for polygons
+function styleFeature(feature) {
+  const currentKey = d3.select("#data-toggle").property("value");
+  const ds = dataSets[currentKey];
+  const val = ds.valueFunc(feature);
+
+  return {
+    fillColor: ds.colorScale(val),
+    weight: 0.5,
+    color: "#333",
+    opacity: 0.5,
+    fillOpacity: 0.5
+  };
+}
+
+// Common highlight style
+function setHighlightStyle(layer) {
+  layer.setStyle({
+    weight: 2,
+    color: "#000",
+    opacity: 1
+  });
+  layer.bringToFront();
+}
+
+// Mouseover highlight
+function highlightFeature(e) {
+  setHighlightStyle(e.target);
+}
+
+// Reset highlight if not the active polygon
+function resetHighlight(e) {
+  if (previouslyHighlightedLayer === e.target) {
+    // It's the active polygon, keep highlight
+    return;
+  }
+  geoJsonLayer.resetStyle(e.target);
+}
+
+// On polygon click => set activeFeature, highlight, update panel
+function clickFeature(e) {
+  activeFeature = e.target.feature;
+  highlightActiveFeature();
+  updateInfoPanel(activeFeature);
+}
+
+// Re-apply highlight to the active polygon (if any)
+function highlightActiveFeature() {
+  if (activeFeature) {
+    const da = activeFeature.properties.DAUID;
+    const layer = featureLayerMap[da];
+    if (layer) {
+      // Reset old highlight
+      if (previouslyHighlightedLayer && previouslyHighlightedLayer !== layer) {
+        geoJsonLayer.resetStyle(previouslyHighlightedLayer);
+      }
+      // Highlight new
+      setHighlightStyle(layer);
+      previouslyHighlightedLayer = layer;
+    }
+  }
+}
+
+/***************************************************************
+ * 5) LEGEND & LAYER SWITCH
+ ***************************************************************/
+let legendControl = null;
+
+function updateLegend() {
+  if (legendControl) {
+    map.removeControl(legendControl);
+  }
+  legendControl = L.control({ position: "topright" });
+  
+  legendControl.onAdd = () => {
+    const div = L.DomUtil.create("div", "info-legend");
+    const currentKey = d3.select("#data-toggle").property("value");
+    const ds = dataSets[currentKey];
+    const [minVal, maxVal] = ds.colorScale.domain();
+
+    div.innerHTML = `<h4>${ds.label}</h4>`;
+    const minColor = ds.colorScale(minVal);
+    const maxColor = ds.colorScale(maxVal);
+
+    div.innerHTML += `
+      <div style="
+        width: 200px;
+        height: 10px;
+        margin-bottom: 5px;
+        background: linear-gradient(to right, ${minColor}, ${maxColor});
+      "></div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>${minVal.toFixed(2)}</span>
+        <span>${maxVal.toFixed(2)}</span>
+      </div>
+    `;
+    return div;
+  };
+  legendControl.addTo(map);
+}
+
+// Re-style polygons, highlight active, update legend
+function updateMapStyle() {
+  geoJsonLayer.setStyle(styleFeature);
+  highlightActiveFeature();
+  updateLegend();
+}
+
+/***************************************************************
+ * 6) RESET ZOOM
+ ***************************************************************/
+function resetZoom() {
+  map.setView(INITIAL_CENTER, INITIAL_ZOOM);
+}
+document.getElementById("resetZoom").addEventListener("click", resetZoom);
+
+/***************************************************************
+ * 7) SEARCH + TURF POINT-IN-POLYGON
+ ***************************************************************/
+// Restrict to Toronto bounding box (approx)
+const TORONTO_BBOX = "-79.639319,43.855401,-79.115408,43.407521";
+
+function searchLocation() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) return;
+
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=ca&viewbox=${TORONTO_BBOX}&bounded=1&q=${encodeURIComponent(query)}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        const result = data[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+
+        // Place or update the search marker
+        if (searchMarker) {
+          map.removeLayer(searchMarker);
+        }
+        searchMarker = L.marker([lat, lon]).addTo(map);
+
+        map.setView([lat, lon], 14);
+
+        // If we have the raw data, do point-in-polygon
+        if (!geoJsonData) return;
+        const pt = turf.point([lon, lat]);
+
+        let foundFeature = null;
+        for (const f of geoJsonData.features) {
+          if (turf.booleanPointInPolygon(pt, f)) {
+            foundFeature = f;
+            break;
+          }
+        }
+
+        if (foundFeature) {
+          activeFeature = foundFeature;
+          highlightActiveFeature();
+          updateInfoPanel(foundFeature);
+        } else {
+          alert("Coordinates not in any DA polygon. Possibly outside city boundary?");
+        }
+      } else {
+        alert("No location found within Toronto. Try a different query.");
+      }
+    })
+    .catch(err => {
+      console.error("Error searching location:", err);
+      alert("Error searching location. Check console for details.");
+    });
+}
+
+// **Search button click**
+document.getElementById("searchButton").addEventListener("click", searchLocation);
+
+// **Enter/Return key in the search input**
+document.getElementById("searchInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    searchLocation();
+  }
+});
+
+/***************************************************************
+ * 8) LOAD GEOJSON & INIT
+ ***************************************************************/
+d3.json("data/data.geojson").then(data => {
+  geoJsonData = data;
+
+  // Find city-wide maxima for the bar charts
+  data.features.forEach(f => {
+    const p = f.properties;
+    maxValues.population_2016 
+      = Math.max(maxValues.population_2016, p.population_2016 || 0);
+    maxValues.pop_density_km2 
+      = Math.max(maxValues.pop_density_km2, p.pop_density_km2 || 0);
+    maxValues.median_income 
+      = Math.max(maxValues.median_income, p.median_income || 0);
+    maxValues.unemployment_rate
+      = Math.max(maxValues.unemployment_rate, p.unemployment_rate || 0);
+  });
+
+  // Build color scales for each data set
+  Object.keys(dataSets).forEach(key => {
+    const ds = dataSets[key];
+    const vals = data.features.map(ds.valueFunc);
+    const domain = d3.extent(vals);
+
+    let interpolator;
+    switch (key) {
+      case "exposure":
+        interpolator = d3.interpolateOranges;
+        break;
+      case "canopy":
+        interpolator = d3.interpolateGreens;
+        break;
+      case "impervious":
+        interpolator = d3.interpolateGreys;
+        break;
+      case "coolAccess":
+        interpolator = d3.interpolateBlues;
+        break;
+      case "hospitalAccess":
+        interpolator = d3.interpolatePurples;
+        break;
+      default:
+        interpolator = d3.interpolateViridis;
     }
 
-    // Append a linearGradient for the legend
-    const gradient = defs.append("linearGradient")
-        .attr("id", "legend-gradient")
-        .attr("x1", "0%").attr("y1", "0%")
-        .attr("x2", "100%").attr("y2", "0%");
+    ds.colorScale = d3.scaleSequential()
+      .domain(domain)
+      .interpolator(interpolator);
+  });
 
-    gradient.append("stop")
-        .attr("offset", "0%")
-        .attr("stop-color", colorScale(domain[0]));
-    gradient.append("stop")
-        .attr("offset", "100%")
-        .attr("stop-color", colorScale(domain[1]));
+  // Create the Leaflet GeoJSON layer
+  geoJsonLayer = L.geoJson(data, {
+    style: styleFeature,
+    onEachFeature(feature, layer) {
+      // Store reference for highlight
+      const dauid = feature.properties.DAUID;
+      featureLayerMap[dauid] = layer;
 
-    const legendWidth = 300, legendHeight = 10;
-    const legendGroup = svg.append("g")
-        .attr("class", "legend")
-        .attr("transform", `translate(20, ${height - 50})`);
+      layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: clickFeature
+      });
+    }
+  }).addTo(map);
 
-    legendGroup.append("rect")
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .style("fill", "url(#legend-gradient)");
+  // Initial legend
+  updateLegend();
 
-    const legendScale = d3.scaleLinear()
-        .domain(domain)
-        .range([0, legendWidth]);
-    const legendAxis = d3.axisBottom(legendScale)
-        .ticks(5)
-        .tickFormat(d3.format(".2f"));
+  // When the user changes the dropdown
+  d3.select("#data-toggle").on("change", () => {
+    updateMapStyle();
+  });
 
-    legendGroup.append("g")
-        .attr("transform", `translate(0, ${legendHeight})`)
-        .call(legendAxis);
-}
-
-// Function to draw the map based on the provided dataset
-function drawMap(dataset, valueKey, colorScale, label) {
-    // Remove existing paths
-    g.selectAll("path").remove();
-
-    // Draw map boundaries
-    g.selectAll("path")
-        .data(dataset.features)
-        .enter()
-        .append("path")
-        .attr("d", path)
-        .attr("fill", d => colorScale(d.properties[valueKey]))
-        .attr("stroke", "#333")
-        .attr("stroke-width", 0.5)
-        .on("mouseover", (event, d) => {
-            tooltip.style("display", "block")
-                .html(`<strong>DAUID:</strong> ${d.properties.DAUID}<br>
-                       <strong>${label}:</strong> ${d.properties[valueKey].toFixed(2)}`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 10) + "px");
-            d3.select(event.currentTarget)
-                .attr("stroke", "#000")
-                .attr("stroke-width", 2);
-        })
-        .on("mouseout", (event) => {
-            tooltip.style("display", "none");
-            d3.select(event.currentTarget)
-                .attr("stroke", "#333")
-                .attr("stroke-width", 0.5);
-        });
-
-    // Draw the legend for the current dataset
-    drawLegend(d3.extent(dataset.features, d => d.properties[valueKey]), colorScale);
-}
-// Function to draw contour map based on provided dataset
-function drawContourMap(dataset){
-
-    // Remove previous map elements but KEEP the base map outline
-    g.selectAll(".contour-area, .contour").remove();
-    svg.selectAll(".legend").remove();
-
-    // Draw the blank base map (Toronto boundaries)
-    g.selectAll("path")
-        .data(dataset.features)
-        .enter().append("path")
-        .attr("d", path)
-        .attr("fill", "none")
-        .attr("stroke", "#aaa")
-        .attr("stroke-width", 0.5);
-
-    // Extract centroids and temperature values for contours
-    const points = dataset.features.map(d => {
-        const centroid = d3.geoCentroid(d); // Compute the centroid of the polygon
-        return {
-            lon: centroid[0],
-            lat: centroid[1],
-            value: d.properties.SUM_temper
-        };
-    });
-
-    // Convert geographic coordinates into projected coordinates
-    const projectedPoints = points.map(d => ({
-        x: projection([d.lon, d.lat])[0], // Projected x
-        y: projection([d.lon, d.lat])[1], // Projected y
-        value: d.value
-    }));
-
-    // Define the grid size for interpolation
-    const gridSize = 20;
-    const gridWidth = Math.ceil(width / gridSize);
-    const gridHeight = Math.ceil(height / gridSize);
-    const grid = new Array(gridWidth * gridHeight).fill(0);
-
-    // Fill the grid with values using nearest neighbor interpolation
-    projectedPoints.forEach(({ x, y, value }) => {
-        const i = Math.floor(x / gridSize);
-        const j = Math.floor(y / gridSize);
-        if (i >= 0 && i < gridWidth && j >= 0 && j < gridHeight) {
-            grid[j * gridWidth + i] = value;
-        }
-    });
-
-    // Generate contour lines with dynamic thresholding
-    const contours = d3.contours()
-        .size([gridWidth, gridHeight])
-        (grid);
-
-    // Define a red color scale for contour lines
-    const contourColor = d3.scaleSequential(d3.interpolateReds)
-        .domain(d3.extent(points, d => d.value));
-
-    // Draw contour **areas** with transparency
-    g.selectAll(".contour-area")
-        .data(contours)
-        .enter().append("path")
-        .attr("class", "contour-area")
-        .attr("d", d3.geoPath(d3.geoIdentity().scale(gridSize)))
-        .attr("fill", d => contourColor(d.value)) // Apply color based on temperature
-        .attr("opacity", 0.1); // Add transparency to avoid overpowering the map
-
-    // Draw contour **lines** on top
-    g.selectAll(".contour")
-        .data(contours)
-        .enter().append("path")
-        .attr("class", "contour")
-        .attr("d", d3.geoPath(d3.geoIdentity().scale(gridSize)))
-        .attr("fill", "none") // Ensure no additional fill for lines
-        .attr("stroke", d => contourColor(d.value)) // Use the same color as the fill
-        .attr("stroke-width", 1.5);
-
-    // **Add temperature tooltips on hover**
-    g.selectAll(".contour")
-        .on("mouseover", function (event, d) {
-            tooltip.style("display", "block")
-                .html(`<strong>Temperature:</strong> ${d.value.toFixed(1)} °C`)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 10) + "px");
-
-            // Highlight the hovered contour line
-            d3.select(this).attr("stroke-width", 3);
-        })
-        .on("mousemove", function (event) {
-            tooltip.style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 10) + "px");
-        })
-        .on("mouseout", function () {
-            tooltip.style("display", "none");
-
-            // Reset contour line thickness
-            d3.select(this).attr("stroke-width", 1.5);
-        });
-
-}
-
-
-// Load the GeoJSON datasets concurrently
-Promise.all([
-    d3.json("data/pca_vuln_index.geojson"),
-    d3.json("data/exposure_degree20.geojson")
-]).then(([vulnData, exposureData]) => {
-    // Define color scales for each dataset
-    const vulnExtent = d3.extent(vulnData.features, d => d.properties.Heat_Vuln);
-    const vulnColor = d3.scaleSequential(d3.interpolateReds).domain(vulnExtent);
-
-    const exposureExtent = d3.extent(exposureData.features, d => d.properties.SUM_temper);
-    const exposureColor = d3.scaleSequential(d3.interpolateOranges).domain(exposureExtent);
-
-    // Initially draw the vulnerability map
-    drawMap(vulnData, "Heat_Vuln", vulnColor, "Heat Vulnerability");
-
-    // Attach event listener to the dropdown to toggle between datasets
-    d3.select("#data-toggle").on("change", function() {
-        const selection = this.value;
-        if (selection === "vulnerability") {
-            drawMap(vulnData, "Heat_Vuln", vulnColor, "Heat Vulnerability");
-        } else if (selection === "exposure") {
-            drawMap(exposureData, "SUM_temper", exposureColor, "Heat Exposure (°C Days)");
-        } else if (selection ==="contour") {
-            drawContourMap(exposureData);
-        }
-    });
-}).catch(error => {
-    console.error("Error loading data:", error);
+}).catch(err => {
+  console.error("Error loading GeoJSON:", err);
 });

@@ -71,7 +71,7 @@ h2 {
 }
 
 /* Map and chart container centering */
-#map-container,
+#map,
 #chart-container,
 .container {
     display: flex;
@@ -112,4 +112,79 @@ svg {
         width: 100%;
         height: auto;
     }
+}
+
+/* A flex container to align all controls in one row */
+#controls {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* space between items */
+    margin-bottom: 10px; /* spacing below the row of controls */
+}
+
+/* Style the input and dropdown a bit */
+#controls input[type="text"],
+#controls select {
+    padding: 4px;
+    font-size: 14px;
+}
+
+/* The map container */
+#map {
+    width: 800px;
+    height: 600px;
+    border: 1px solid #ccc;
+}
+
+/* Info panel for bar charts, etc. */
+#info-panel {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    max-width: 800px;
+}
+#info-panel h3 {
+    margin: 0 0 10px;
+}
+
+/* Basic bar chart styles */
+.bar-chart {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+}
+.bar-label {
+    width: 160px;
+    font-weight: bold;
+}
+.bar-wrapper {
+    flex: 1;
+    background: #ddd;
+    height: 20px;
+    margin: 0 10px;
+    position: relative;
+}
+.bar-fill {
+    background: #69b3a2;
+    height: 100%;
+    width: 0%;
+}
+.bar-value {
+    width: 60px;
+    text-align: right;
+}
+
+/* Legend styling */
+.info-legend {
+    background: white;
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    border: 1px solid #ccc;
+}
+.info-legend h4 {
+    margin: 2px 0;
+    font-weight: bold;
+}
+.leaflet-top.leaflet-right .info-legend {
+    margin-right: 10px;
 }

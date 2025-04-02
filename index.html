@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toronto Heat Vulnerability Map</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toronto Heat Vulnerability</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ></script>
+  <!-- Turf.js (if you are using it) -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -32,17 +46,32 @@
 
 <!-- MAP SECTION (Row 1) -->
 <section id="map-section" class="section">
-    <h1>Toronto Heat Vulnerability Map</h1>
-
-    <button id="resetZoom">Reset Zoom</button>
-    <select id="data-toggle">
-        <option value="vulnerability">Heat Vulnerability</option>
-        <option value="exposure">Heat Exposure</option>
-        <option value="contour">Heat Contour Map</option>
-    </select>
-
-    <div id="map-container">
-        <svg id="map" width="800" height="600"></svg>
+    <!-- FLEX CONTAINER FOR ALL CONTROLS -->
+    <div id="controls">
+        <!-- RESET ZOOM BUTTON -->
+        <button id="resetZoom">Reset Zoom</button>
+        
+        <!-- DROPDOWN FOR LAYER SWITCH -->
+        <select id="data-toggle">
+            <option value="exposure">Heat Exposure (°C Days)</option>
+            <option value="canopy">Tree Canopy (%)</option>
+            <option value="impervious">Impervious Surface (%)</option>
+            <option value="coolAccess">Access to Cooling Centers</option>
+            <option value="hospitalAccess">Access to Hospitals</option>
+        </select>
+        
+        <!-- SEARCH INPUT AND BUTTON -->
+        <input type="text" id="searchInput" placeholder="Search location..." />
+        <button id="searchButton">Search</button>
+    </div>
+    
+    <!-- LEAFLET MAP CONTAINER -->
+    <div id="map"></div>
+    
+    <!-- INFO PANEL BELOW THE MAP -->
+    <div id="info-panel">
+        <h3>DA Information</h3>
+        <p>Click on a dissemination area or search for a location to see details here.</p>
     </div>
 
     <!-- INTERPRETATION OF THE MAP -->
