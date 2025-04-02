@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat & Census (Leaflet + OSM + Nominatim Search + Marker)</title>
+  <title>Toronto Heat & Census (Controls Aligned)</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -16,17 +16,38 @@
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   ></script>
+  <!-- Turf.js (if you are using it) -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
     }
+
+    /* A flex container to align all controls in one row */
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 10px; /* space between items */
+      margin-bottom: 10px; /* spacing below the row of controls */
+    }
+
+    /* Optionally style the input and dropdown a bit */
+    #controls input[type="text"],
+    #controls select {
+      padding: 4px;
+      font-size: 14px;
+    }
+
+    /* The map container */
     #map {
       width: 800px;
       height: 600px;
       border: 1px solid #ccc;
     }
+
+    /* Info panel for bar charts, etc. */
     #info-panel {
       margin-top: 20px;
       padding: 10px;
@@ -36,6 +57,8 @@
     #info-panel h3 {
       margin: 0 0 10px;
     }
+
+    /* Basic bar chart styles (if you’re using them) */
     .bar-chart {
       display: flex;
       align-items: center;
@@ -61,6 +84,8 @@
       width: 60px;
       text-align: right;
     }
+
+    /* Legend styling */
     .info-legend {
       background: white;
       padding: 6px 8px;
@@ -74,29 +99,18 @@
     .leaflet-top.leaflet-right .info-legend {
       margin-right: 10px;
     }
-
-    /* Search box styling */
-    #search-box {
-      margin: 10px 0;
-    }
-    #search-box input {
-      width: 200px;
-      padding: 4px;
-      margin-right: 4px;
-    }
   </style>
 </head>
 <body>
 
-  <h1>Toronto Heat & Census (Leaflet + OSM + Nominatim Search + Marker)</h1>
+  <h1>Toronto Heat & Census (Controls Aligned)</h1>
 
-  <!-- SEARCH & CONTROLS -->
-  <div id="search-box">
-    <input type="text" id="searchInput" placeholder="Search location..." />
-    <button id="searchButton">Search</button>
-  </div>
-  <div>
+  <!-- FLEX CONTAINER FOR ALL CONTROLS -->
+  <div id="controls">
+    <!-- RESET ZOOM BUTTON -->
     <button id="resetZoom">Reset Zoom</button>
+
+    <!-- DROPDOWN FOR LAYER SWITCH -->
     <select id="data-toggle">
       <option value="exposure">Heat Exposure (°C Days)</option>
       <option value="canopy">Tree Canopy (%)</option>
@@ -104,19 +118,22 @@
       <option value="coolAccess">Access to Cooling Centers</option>
       <option value="hospitalAccess">Access to Hospitals</option>
     </select>
+
+    <!-- SEARCH INPUT AND BUTTON -->
+    <input type="text" id="searchInput" placeholder="Search location..." />
+    <button id="searchButton">Search</button>
   </div>
 
-  <!-- MAP -->
+  <!-- LEAFLET MAP CONTAINER -->
   <div id="map"></div>
 
-  <!-- INFO PANEL -->
+  <!-- INFO PANEL BELOW THE MAP -->
   <div id="info-panel">
     <h3>DA Information</h3>
-    <p>Click on a dissemination area to see details here.</p>
+    <p>Click on a dissemination area or search for a location to see details here.</p>
   </div>
 
-  <!-- MAIN SCRIPT -->
+  <!-- MAIN SCRIPT (Unchanged, except references to your existing script.js) -->
   <script src="js/script.js"></script>
-
 </body>
 </html>
