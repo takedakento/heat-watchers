@@ -16,7 +16,7 @@
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   ></script>
-  <!-- Turf.js (if you are using it) -->
+  <!-- Turf.js -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
@@ -50,7 +50,7 @@
     <div id="controls">
         <!-- RESET ZOOM BUTTON -->
         <button id="resetZoom">Reset Zoom</button>
-        
+
         <!-- DROPDOWN FOR LAYER SWITCH -->
         <select id="data-toggle">
             <option value="exposure">Heat Exposure (°C Days)</option>
@@ -59,15 +59,15 @@
             <option value="coolAccess">Access to Cooling Centers</option>
             <option value="hospitalAccess">Access to Hospitals</option>
         </select>
-        
+
         <!-- SEARCH INPUT AND BUTTON -->
         <input type="text" id="searchInput" placeholder="Search location..." />
         <button id="searchButton">Search</button>
     </div>
-    
+
     <!-- LEAFLET MAP CONTAINER -->
     <div id="map"></div>
-    
+
     <!-- INFO PANEL BELOW THE MAP -->
     <div id="info-panel">
         <h3>DA Information</h3>
