@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat Vulnerability</title>
+  <title>Heat Islands in Toronto</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -32,10 +32,10 @@
 
 
 <section id="overview-section" class="section">
-    <h1>The Impact of Climate Change on Urban Heat Islands (UHI) in Canada</h1>
+    <h1>Climate Change and Urban Heat Islands in Toronto</h1>
     <p>
         Climate change is one of the most pressing challenges of our time, with rising global temperatures leading to more frequent and intense heatwaves.
-        In urban environments, this warming effect is further amplified by the UHI, where cities experience significantly higher temperatures than surrounding rural areas.
+        In urban environments, this warming effect is further amplified by the Urban Heat Islands (UHI), where cities experience significantly higher temperatures than surrounding rural areas.
         This occurs due to factors such as high concentrations of heat-absorbing surfaces, reduced vegetation, and human activities that generate heat.
     </p>
     <p>
@@ -46,41 +46,40 @@
 
 <!-- MAP SECTION (Row 1) -->
 <section id="map-section" class="section">
-    <!-- FLEX CONTAINER FOR ALL CONTROLS -->
-    <div id="controls">
-        <!-- RESET ZOOM BUTTON -->
-        <button id="resetZoom">Reset Zoom</button>
+    <!-- Wrap controls and map together so we can center them as a block -->
+    <div class="map-container">
+        <!-- FLEX CONTAINER FOR ALL CONTROLS -->
+        <div id="controls">
+            <!-- RESET ZOOM BUTTON -->
+            <button id="resetZoom">Reset Zoom</button>
 
-        <!-- DROPDOWN FOR LAYER SWITCH -->
-        <select id="data-toggle">
-            <option value="exposure">Heat Exposure (°C Days)</option>
-            <option value="canopy">Tree Canopy (%)</option>
-            <option value="impervious">Impervious Surface (%)</option>
-            <option value="coolAccess">Access to Cooling Centers</option>
-            <option value="hospitalAccess">Access to Hospitals</option>
-        </select>
+            <!-- DROPDOWN FOR LAYER SWITCH -->
+            <select id="data-toggle">
+                <option value="exposure">Heat Exposure</option>
+                <option value="canopy">Tree Canopy</option>
+                <option value="impervious">Impervious Surface</option>
+                <option value="coolAccess">Access to Cooling Centers</option>
+                <option value="hospitalAccess">Access to Hospitals</option>
+            </select>
 
-        <!-- SEARCH INPUT AND BUTTON -->
-        <input type="text" id="searchInput" placeholder="Search location..." />
-        <button id="searchButton">Search</button>
+            <!-- SEARCH INPUT AND BUTTON -->
+            <input type="text" id="searchInput" placeholder="Name or Address..." />
+            <button id="searchButton">Search</button>
+        </div>
+
+        <!-- LEAFLET MAP CONTAINER -->
+        <div id="map"></div>
     </div>
-
-    <!-- LEAFLET MAP CONTAINER -->
-    <div id="map"></div>
 
     <!-- INFO PANEL BELOW THE MAP -->
     <div id="info-panel">
-        <h3>DA Information</h3>
+        <h3>Dissemination area details</h3>
         <p>Click on a dissemination area or search for a location to see details here.</p>
     </div>
 
     <!-- INTERPRETATION OF THE MAP -->
     <p>
-        This map visually represents areas in the city that are most susceptible to extreme heat. The map uses a color gradient, with lighter shades indicating lower vulnerability
-        and darker shades representing higher vulnerability. The vulnerability index is calculated based on factors such as surface temperature, green space availability, and population density.
-    </p>
-    <p>
-        From the visualization, it is evident that highly urbanized areas with dense infrastructure and limited vegetation tend to have greater heat vulnerability, particularly in the downtown core.
+        This map visually represents areas in the city that are most susceptible to extreme heat, using a color gradient. From the visualization, it is evident that highly urbanized areas with dense infrastructure and limited vegetation tend to have greater heat vulnerability, particularly in the downtown core.
         In contrast, regions with more greenery, such as parks and suburban neighborhoods, show lower vulnerability levels. Certain industrial zones, especially in Etobicoke and Scarborough,
         show moderate to high vulnerability. This helps us pinpoint neighborhoods that need targeted heat mitigation strategies, such as increased tree planting and better access to cooling centers.
     </p>
@@ -101,7 +100,6 @@
         This visualization serves as supporting evidence for the increasing urban heat effect in Toronto, demonstrating how rising temperatures contribute to intensifying urban heat islands.
     </p>
 </section>
-
 
 <section id="precipitation-section" class="section">
     <h2>Shifts in Seasonal Precipitation Patterns</h2>

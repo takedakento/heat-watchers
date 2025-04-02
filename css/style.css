@@ -70,15 +70,10 @@ h2 {
     color: #004488;
 }
 
-/* Map and chart container centering */
-#map,
-#chart-container,
-.container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    padding-top: 20px;
+/* A container to center the map and controls together */
+.map-container {
+    width: 800px;
+    margin: 0 auto; /* Centers the entire block */
 }
 
 /* Buttons & dropdowns */
@@ -100,20 +95,7 @@ button:hover, select:hover {
     cursor: pointer;
 }
 
-/* SVG styling */
-svg {
-    border: 1px solid #ccc;
-}
-
-/* Responsive design */
-@media (max-width: 900px) {
-    svg {
-        width: 100%;
-        height: auto;
-    }
-}
-
-/* A flex container to align all controls in one row */
+/* Flex container for the row of controls */
 #controls {
     display: flex;
     align-items: center;
@@ -128,20 +110,32 @@ svg {
     font-size: 14px;
 }
 
-/* The map container */
+/* The map container (same width as the map-container above) */
 #map {
     width: 800px;
     height: 600px;
     border: 1px solid #ccc;
 }
 
-/* Info panel for bar charts, etc. */
+/* Centering other chart containers as before (leaving #map out) */
+#chart-container,
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding-top: 20px;
+}
+
+/* Info panel: center it and match the map width */
 #info-panel {
-    margin-top: 20px;
+    width: 800px;
+    margin: 20px auto; /* center horizontally */
     padding: 10px;
     border: 1px solid #ccc;
-    max-width: 800px;
 }
+
+/* Info panel heading */
 #info-panel h3 {
     margin: 0 0 10px;
 }
@@ -186,4 +180,17 @@ svg {
 }
 .leaflet-top.leaflet-right .info-legend {
     margin-right: 10px;
+}
+
+/* SVG styling */
+svg {
+    border: 1px solid #ccc;
+}
+
+/* Responsive design */
+@media (max-width: 900px) {
+    svg {
+        width: 100%;
+        height: auto;
+    }
 }

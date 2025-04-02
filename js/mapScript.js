@@ -8,7 +8,7 @@ const INITIAL_ZOOM = 11;
 const map = L.map("map").setView(INITIAL_CENTER, INITIAL_ZOOM);
 
 L.tileLayer(
-  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
     attribution: '&copy; <a href="https://www.openstreetmap.org/">' +
       'OpenStreetMap</a> contributors'
@@ -49,12 +49,12 @@ const dataSets = {
     colorScale: null
   },
   coolAccess: {
-    label: "Access to Cooling (Higher=Better)",
+    label: "Access to Cooling",
     valueFunc: (f) => 1 / Math.max(f.properties.cool_mean, 0.000001),
     colorScale: null
   },
   hospitalAccess: {
-    label: "Access to Hospitals (Higher=Better)",
+    label: "Access to Hospitals",
     valueFunc: (f) => 1 / Math.max(f.properties.hospital_mean, 0.000001),
     colorScale: null
   }
@@ -102,7 +102,6 @@ function updateInfoPanel(feature) {
   infoPanel.html(""); // Clear old content
 
   infoPanel.append("h3").text(`DAUID: ${props.DAUID}`);
-  infoPanel.append("p").text("Census Data:");
 
   const barContainer = infoPanel.append("div");
   drawBar(barContainer, {
@@ -112,7 +111,7 @@ function updateInfoPanel(feature) {
     format: d3.format(",")
   });
   drawBar(barContainer, {
-    label: "Pop. Density (per km²)",
+    label: "Population Density (per km²)",
     value: props.pop_density_km2,
     max: maxValues.pop_density_km2,
     format: d3.format(".1f")
@@ -207,7 +206,7 @@ function updateLegend() {
     map.removeControl(legendControl);
   }
   legendControl = L.control({ position: "topright" });
-  
+
   legendControl.onAdd = () => {
     const div = L.DomUtil.create("div", "info-legend");
     const currentKey = d3.select("#data-toggle").property("value");
@@ -326,11 +325,11 @@ d3.json("data/data.geojson").then(data => {
   // Find city-wide maxima for the bar charts
   data.features.forEach(f => {
     const p = f.properties;
-    maxValues.population_2016 
+    maxValues.population_2016
       = Math.max(maxValues.population_2016, p.population_2016 || 0);
-    maxValues.pop_density_km2 
+    maxValues.pop_density_km2
       = Math.max(maxValues.pop_density_km2, p.pop_density_km2 || 0);
-    maxValues.median_income 
+    maxValues.median_income
       = Math.max(maxValues.median_income, p.median_income || 0);
     maxValues.unemployment_rate
       = Math.max(maxValues.unemployment_rate, p.unemployment_rate || 0);
