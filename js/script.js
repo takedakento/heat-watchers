@@ -1,14 +1,11 @@
 /***************************************************************
  * 1) LEAFLET MAP + OSM BASEMAP
  ***************************************************************/
-// Initial Toronto center and zoom
 const INITIAL_CENTER = [43.7, -79.38];
 const INITIAL_ZOOM = 11;
 
-// Create the Leaflet map
 const map = L.map("map").setView(INITIAL_CENTER, INITIAL_ZOOM);
 
-// Add OpenStreetMap tiles
 L.tileLayer(
   "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
   {
@@ -20,6 +17,7 @@ L.tileLayer(
  * 2) GLOBAL VARIABLES & SCALES
  ***************************************************************/
 let geoJsonLayer;
+let searchMarker = null; // for the searched location marker
 
 const dataSets = {
   exposure: {
@@ -49,7 +47,6 @@ const dataSets = {
   }
 };
 
-// For bar charts
 const maxValues = {
   population_2016: 0,
   pop_density_km2: 0,
@@ -58,7 +55,7 @@ const maxValues = {
 };
 
 /***************************************************************
- * 3) SIMPLE BAR CHART
+ * 3) BAR CHART
  ***************************************************************/
 function drawBar(container, config) {
   const val = config.value || 0;
@@ -97,7 +94,7 @@ function updateInfoPanel(feature) {
   infoPanel.append("p").text("Census Data:");
   const barContainer = infoPanel.append("div");
 
-  // Extended bar charts
+  // Extended bars
   drawBar(barContainer, {
     label: "Population (2016)",
     value: props.population_2016,
@@ -125,7 +122,7 @@ function updateInfoPanel(feature) {
 }
 
 /***************************************************************
- * 5) STYLE FUNCTION (SEMI-TRANSPARENT)
+ * 5) STYLE & INTERACTION
  ***************************************************************/
 function styleFeature(feature) {
   const currentKey = d3.select("#data-toggle").property("value");
@@ -141,23 +138,19 @@ function styleFeature(feature) {
   };
 }
 
-// Hover highlight
 function highlightFeature(e) {
-  const layer = e.target;
-  layer.setStyle({
+  e.target.setStyle({
     weight: 2,
     color: "#000",
     opacity: 1
   });
-  layer.bringToFront();
+  e.target.bringToFront();
 }
 
-// Reset highlight
 function resetHighlight(e) {
   geoJsonLayer.resetStyle(e.target);
 }
 
-// Click => info panel
 function clickFeature(e) {
   updateInfoPanel(e.target.feature);
 }
@@ -171,7 +164,7 @@ function onEachFeature(feature, layer) {
 }
 
 /***************************************************************
- * 6) UPDATE STYLE & LEGEND
+ * 6) UPDATE STYLES & LEGEND
  ***************************************************************/
 function updateMapStyle() {
   geoJsonLayer.setStyle(styleFeature);
@@ -179,7 +172,7 @@ function updateMapStyle() {
 }
 
 /***************************************************************
- * 7) CONTINUOUS GRADIENT LEGEND (NO BREAKS)
+ * 7) CONTINUOUS GRADIENT LEGEND
  ***************************************************************/
 let legendControl = null;
 
@@ -220,24 +213,63 @@ function updateLegend() {
 }
 
 /***************************************************************
- * 8) ZOOM RESET
+ * 8) RESET ZOOM
  ***************************************************************/
-// This is the new "Reset Zoom" logic
 function resetZoom() {
-  // Jump back to the original center/zoom
   map.setView(INITIAL_CENTER, INITIAL_ZOOM);
 }
-
-// Attach to the button
 document.getElementById("resetZoom").addEventListener("click", resetZoom);
 
 /***************************************************************
- * 9) LOAD DATA + INIT
+ * 9) LOCATION SEARCH (NO POPUP)
+ ***************************************************************/
+// Example bounding box for Toronto
+const TORONTO_BBOX = "-79.639319,43.855401,-79.115408,43.407521";
+
+function searchLocation() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) return;
+
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=ca&viewbox=${TORONTO_BBOX}&bounded=1&q=${encodeURIComponent(query)}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.length > 0) {
+        const result = data[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+
+        // Remove existing marker if any
+        if (searchMarker) {
+          map.removeLayer(searchMarker);
+        }
+
+        // Add new marker at the found location
+        searchMarker = L.marker([lat, lon]).addTo(map);
+
+        // No bindPopup, so no popup is shown
+
+        map.setView([lat, lon], 14);
+      } else {
+        alert("No location found within Toronto. Try a different query.");
+      }
+    })
+    .catch(err => {
+      console.error("Error searching location:", err);
+      alert("Error searching location. Check console for details.");
+    });
+}
+
+document.getElementById("searchButton").addEventListener("click", searchLocation);
+
+/***************************************************************
+ * 10) LOAD GEOJSON & INIT
  ***************************************************************/
 d3.json("data/data.geojson").then(data => {
   const features = data.features;
 
-  // Compute city-wide maxima
+  // Find city-wide maxima
   features.forEach(f => {
     const p = f.properties;
     maxValues.population_2016 = Math.max(maxValues.population_2016, p.population_2016 || 0);
@@ -246,7 +278,7 @@ d3.json("data/data.geojson").then(data => {
     maxValues.unemployment_rate = Math.max(maxValues.unemployment_rate, p.unemployment_rate || 0);
   });
 
-  // Build color scales
+  // Build color scales for each layer
   Object.keys(dataSets).forEach(key => {
     const ds = dataSets[key];
     const vals = features.map(ds.valueFunc);
@@ -278,16 +310,16 @@ d3.json("data/data.geojson").then(data => {
       .interpolator(interpolator);
   });
 
-  // Create the Leaflet GeoJSON layer
+  // Create Leaflet GeoJSON layer
   geoJsonLayer = L.geoJson(data, {
     style: styleFeature,
-    onEachFeature: onEachFeature
+    onEachFeature
   }).addTo(map);
 
-  // Initialize the legend
+  // Initial legend
   updateLegend();
 
-  // On dropdown change
+  // Layer dropdown event
   d3.select("#data-toggle").on("change", () => {
     updateMapStyle();
   });

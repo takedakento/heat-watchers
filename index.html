@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toronto Heat & Census (Leaflet + OSM)</title>
+  <title>Toronto Heat & Census (Leaflet + OSM + Nominatim Search + Marker)</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -12,7 +12,7 @@
   />
   <!-- D3 -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <!-- Leaflet JS (must come before script.js) -->
+  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   ></script>
@@ -74,13 +74,27 @@
     .leaflet-top.leaflet-right .info-legend {
       margin-right: 10px;
     }
+
+    /* Search box styling */
+    #search-box {
+      margin: 10px 0;
+    }
+    #search-box input {
+      width: 200px;
+      padding: 4px;
+      margin-right: 4px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Toronto Heat & Census (Leaflet + OSM)</h1>
+  <h1>Toronto Heat & Census (Leaflet + OSM + Nominatim Search + Marker)</h1>
 
-  <!-- Controls for layer switch + zoom reset -->
+  <!-- SEARCH & CONTROLS -->
+  <div id="search-box">
+    <input type="text" id="searchInput" placeholder="Search location..." />
+    <button id="searchButton">Search</button>
+  </div>
   <div>
     <button id="resetZoom">Reset Zoom</button>
     <select id="data-toggle">
@@ -92,13 +106,17 @@
     </select>
   </div>
 
+  <!-- MAP -->
   <div id="map"></div>
 
+  <!-- INFO PANEL -->
   <div id="info-panel">
     <h3>DA Information</h3>
     <p>Click on a dissemination area to see details here.</p>
   </div>
 
+  <!-- MAIN SCRIPT -->
   <script src="js/script.js"></script>
+
 </body>
 </html>
