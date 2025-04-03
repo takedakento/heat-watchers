@@ -3,12 +3,18 @@
 ```
 heat-wachers
 ├── README.md
+├── css
+│   └── style.css
 ├── data
-│   ├── exposure_degree20.geojson   # Heat exposure data
-│   └── pca_vuln_index.geojson      # Heat vulnerability data
+│   ├── data.geojson   # Heat exposure data
+│   └── tor_urban_Weatherfile_Historical.csv      # Heat vulnerability data
 ├── index.html
 └── js
-    └── script.js
+    ├── chartScript.js
+    ├── mapScript.js
+    └── seasonalShiftScript.js
+
+    
 ```
 ### Project URL & Screencast Video
 #### Final project URL
